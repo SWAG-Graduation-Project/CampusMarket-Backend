@@ -76,7 +76,7 @@ public class AuthService {
         try {
             UUID.fromString(guestUuid);
         } catch (IllegalArgumentException exception) {
-            throw new MemberException(MemberErrorCode.INVALID_GUEST_UUID);
+            throw new MemberException(MemberErrorCode.INVALID_GUEST_UUID_FORMAT);
         }
     }
 
