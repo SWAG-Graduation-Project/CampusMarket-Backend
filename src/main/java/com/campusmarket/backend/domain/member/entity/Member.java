@@ -33,7 +33,7 @@ public class Member {
     private String email;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "로그인유형", length = 30)
+    @Column(name = "로그인유형", nullable = false, length = 30)
     private LoginType loginType;
 
     @Enumerated(EnumType.STRING)
