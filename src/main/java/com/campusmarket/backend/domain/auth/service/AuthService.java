@@ -11,8 +11,10 @@ import com.campusmarket.backend.domain.member.entity.Member;
 import com.campusmarket.backend.domain.member.exception.MemberException;
 import com.campusmarket.backend.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 
 import java.util.Optional;
 
@@ -25,30 +27,39 @@ public class AuthService {
     private final AuthMapper authMapper;
 
     @Transactional
-    // 게스트 회원을 생성하거나, 이미 있으면 기존 회원을 반환
-    public GuestCreateRespDto createGuestMember(GuestCreateReqDto reqDto){
-        String guestUuid = reqDto.guestUuid();
+    public GuestCreateRespDto createGuestMember(GuestCreateReqDto reqDto) {
+        String guestUuid = normalizeGuestUuid(reqDto.guestUuid());
 
         validateGuestUuid(guestUuid);
 
-        Optional<Member> existingMember = memberRepository.findByGuestUuid(guestUuid);
+        try {
+            Optional<Member> existingMember = memberRepository.findByGuestUuid(guestUuid);
 
-        if (existingMember.isPresent()){
-            return authMapper.toGuestCreateRespDto(existingMember.get(), false);
+            if (existingMember.isPresent()) {
+                return authMapper.toGuestCreateRespDto(existingMember.get(), false);
+            }
+
+            Member member = Member.builder()
+                    .guestUuid(guestUuid)
+                    .loginType(LoginType.GUEST)
+                    .status(MemberStatus.ACTIVE)
+                    .build();
+
+            Member savedMember = memberRepository.save(member);
+
+            return authMapper.toGuestCreateRespDto(savedMember, true);
+
+        } catch (DataIntegrityViolationException e) {
+            Member member = memberRepository.findByGuestUuid(guestUuid)
+                    .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+            return authMapper.toGuestCreateRespDto(member, false);
         }
-
-        Member member = Member.builder()
-                .guestUuid(guestUuid)
-                .loginType(LoginType.GUEST)
-                .status(MemberStatus.ACTIVE)
-                .build();
-
-        Member savedMember = memberRepository.save(member);
-
-        return authMapper.toGuestCreateRespDto(savedMember, true);
     }
 
     public CurrentMemberInfoRespDto getCurrentMemberInfo(String guestUuid){
+        guestUuid = normalizeGuestUuid(guestUuid);
+
         validateGuestUuid(guestUuid);
 
         Member member = memberRepository.findByGuestUuid(guestUuid)
@@ -61,5 +72,19 @@ public class AuthService {
         if (guestUuid == null || guestUuid.isBlank()) {
             throw new MemberException(MemberErrorCode.INVALID_GUEST_UUID);
         }
+
+        try {
+            UUID.fromString(guestUuid);
+        } catch (IllegalArgumentException exception) {
+            throw new MemberException(MemberErrorCode.INVALID_GUEST_UUID);
+        }
+    }
+
+    private String normalizeGuestUuid(String guestUuid) {
+        if (guestUuid == null) {
+            return null;
+        }
+
+        return guestUuid.trim().toLowerCase();
     }
 }
