@@ -1,4 +1,4 @@
 package com.campusmarket.backend.global;
 
-public class config {
+public class Common {
 }

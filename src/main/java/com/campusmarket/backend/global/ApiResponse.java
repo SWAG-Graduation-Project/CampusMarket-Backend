@@ -1,4 +1,4 @@
 package com.campusmarket.backend.global;
 
-public class response {
+public class ApiResponse {
 }
