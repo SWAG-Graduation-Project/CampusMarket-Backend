@@ -7,7 +7,7 @@ import com.campusmarket.backend.global.response.BaseResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 public interface AuthControllerDocs {
 
     @PostMapping("/guest")
