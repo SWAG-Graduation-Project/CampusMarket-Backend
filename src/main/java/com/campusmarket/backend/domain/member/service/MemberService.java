@@ -25,7 +25,7 @@ public class MemberService {
     private final MemberProfileRepository memberProfileRepository;
     private final RandomNicknameRepository randomNicknameRepository;
 
-    // 이미 존재하는 닉네임이 계속 뽑히면 10번 시도 후 실패 처리
+    // 후보 생성 후 셔플하여 순회
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9]{2,12}$");
     private static final int MIN_SUFFIX_NUMBER = 10;
     private static final int MAX_SUFFIX_NUMBER = 99;
