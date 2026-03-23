@@ -11,8 +11,9 @@ import com.campusmarket.backend.domain.member.repository.RandomNicknameRepositor
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -25,39 +26,40 @@ public class MemberService {
     private final RandomNicknameRepository randomNicknameRepository;
 
     // 이미 존재하는 닉네임이 계속 뽑히면 10번 시도 후 실패 처리
-    private static final int MAX_RETRY_COUNT = 10;
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9]{2,12}$");
-
+    private static final int MIN_SUFFIX_NUMBER = 10;
+    private static final int MAX_SUFFIX_NUMBER = 99;
 
     /**
      * 랜덤 닉네임 추천
      * 형용사 + 명사 + 두 자리 숫자 조합으로 닉네임 생성
      * 예: 아름다운덕새27
      */
-    public RandomNicknameResDto getRandomNickname(){
-        List<RandomNickname> adjectives = randomNicknameRepository.findByWordTypeAndActiveTrue(RandomNicknameWordType.ADJECTIVE);
-        List<RandomNickname> nouns = randomNicknameRepository.findByWordTypeAndActiveTrue(RandomNicknameWordType.NOUN);
+    public RandomNicknameResDto getRandomNickname() {
+        List<RandomNickname> adjectives =
+                randomNicknameRepository.findByWordTypeAndActiveTrue(RandomNicknameWordType.ADJECTIVE);
+        List<RandomNickname> nouns =
+                randomNicknameRepository.findByWordTypeAndActiveTrue(RandomNicknameWordType.NOUN);
 
         if (adjectives.isEmpty() || nouns.isEmpty()) {
             throw new MemberException(MemberErrorCode.RANDOM_NICKNAME_WORD_NOT_FOUND);
         }
 
-        SecureRandom random = new SecureRandom();
+        List<String> candidates = buildValidNicknameCandidates(adjectives, nouns);
 
-        for (int attempt = 0; attempt < MAX_RETRY_COUNT; attempt++) {
-            String adjective = adjectives.get(random.nextInt(adjectives.size())).getWord();
-            String noun = nouns.get(random.nextInt(nouns.size())).getWord();
-            int number = random.nextInt(90) + 10;
+        if (candidates.isEmpty()) {
+            throw new MemberException(MemberErrorCode.RANDOM_NICKNAME_GENERATION_FAILED);
+        }
 
-            String nickname = adjective + noun + number;
+        Collections.shuffle(candidates, new SecureRandom());
 
+        for (String nickname : candidates) {
             if (!memberProfileRepository.existsByNicknameIgnoreCase(nickname)) {
                 return RandomNicknameResDto.from(nickname);
             }
         }
 
         throw new MemberException(MemberErrorCode.RANDOM_NICKNAME_GENERATION_FAILED);
-
     }
 
     /**
@@ -72,12 +74,8 @@ public class MemberService {
     }
 
     //닉네임 형식 검증
-    private void validateNickname(String nickname){
-        if (nickname.isBlank()){
-            throw new MemberException(MemberErrorCode.INVALID_NICKNAME);
-        }
-
-        if (!NICKNAME_PATTERN.matcher(nickname).matches()){
+    private void validateNickname(String nickname) {
+        if (!isValidNicknameFormat(nickname)) {
             throw new MemberException(MemberErrorCode.INVALID_NICKNAME);
         }
     }
@@ -94,6 +92,31 @@ public class MemberService {
 
         boolean available = !memberProfileRepository.existsByNicknameIgnoreCase(nickname);
         return NicknameCheckResDto.of(nickname, available);
+    }
+
+    private boolean isValidNicknameFormat(String nickname) {
+        return nickname != null
+                && !nickname.isBlank()
+                && NICKNAME_PATTERN.matcher(nickname).matches();
+    }
+
+    private List<String> buildValidNicknameCandidates(List<RandomNickname> adjectives,
+                                                      List<RandomNickname> nouns) {
+        List<String> candidates = new ArrayList<>();
+
+        for (RandomNickname adjective : adjectives) {
+            for (RandomNickname noun : nouns) {
+                for (int number = MIN_SUFFIX_NUMBER; number <= MAX_SUFFIX_NUMBER; number++) {
+                    String nickname = adjective.getWord() + noun.getWord() + number;
+
+                    if (isValidNicknameFormat(nickname)) {
+                        candidates.add(nickname);
+                    }
+                }
+            }
+        }
+
+        return candidates;
     }
 
 

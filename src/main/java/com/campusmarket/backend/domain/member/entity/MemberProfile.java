@@ -22,7 +22,7 @@ public class MemberProfile {
     @JoinColumn(name = "회원ID", nullable = false, unique = true)
     private Member member;
 
-    @Column(name = "닉네임", unique = true)
+    @Column(name = "닉네임", nullable = false, length = 12, unique = true)
     private String nickname;
 
     @Column(name = "프로필이미지URL", length = 500)
