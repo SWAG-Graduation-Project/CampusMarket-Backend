@@ -180,4 +180,8 @@ public class Member {
         this.termsCompleted = true;
     }
 
+    public void updateTermsCompleted(Boolean termsCompleted){
+        this.termsCompleted = termsCompleted;
+    }
+
 }
