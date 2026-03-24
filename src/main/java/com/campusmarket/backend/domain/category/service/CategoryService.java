@@ -31,6 +31,10 @@ public class CategoryService {
     }
 
     public SubCategoryListResDto getSubCategories(Long majorCategoryId) {
+        if (majorCategoryId == null) {
+            throw new CategoryException(CategoryErrorCode.MAJOR_CATEGORY_NOT_FOUND);
+        }
+
         MajorCategory majorCategory = majorCategoryRepository.findById(majorCategoryId)
                 .orElseThrow(() -> new CategoryException(CategoryErrorCode.MAJOR_CATEGORY_NOT_FOUND));
 
