@@ -35,7 +35,7 @@ public class CategoryService {
                 .orElseThrow(() -> new CategoryException(CategoryErrorCode.MAJOR_CATEGORY_NOT_FOUND));
 
         List<SubCategory> subCategories = subCategoryRepository
-                .findAllByMajorCategoryIdOrderBySortOrderAsc(majorCategory.getId());
+                .findAllByMajorCategory_IdOrderBySortOrderAsc(majorCategory.getId());
 
         return categoryMapper.toSubCategoryListResDto(majorCategory.getId(), subCategories);
     }
