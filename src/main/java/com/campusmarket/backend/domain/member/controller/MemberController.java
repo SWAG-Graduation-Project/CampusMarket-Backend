@@ -4,6 +4,7 @@ import com.campusmarket.backend.domain.member.dto.request.MemberProfileCreateReq
 import com.campusmarket.backend.domain.member.dto.request.MemberProfileUpdateReqDto;
 import com.campusmarket.backend.domain.member.dto.response.MemberProfileResDto;
 import com.campusmarket.backend.domain.member.dto.response.NicknameCheckResDto;
+import com.campusmarket.backend.domain.member.dto.response.OnboardingStatusResDto;
 import com.campusmarket.backend.domain.member.dto.response.RandomNicknameResDto;
 import com.campusmarket.backend.domain.member.service.MemberService;
 import com.campusmarket.backend.global.ApiResponse;
@@ -55,5 +56,21 @@ public class MemberController implements MemberControllerDocs{
             @RequestHeader("guestUuid") String guestUuid
     ) {
         return ApiResponse.success(memberService.getProfile(guestUuid));
+    }
+
+    @Override
+    @GetMapping("/onboarding-status")
+    public ApiResponse<OnboardingStatusResDto> getOnboardingStatus(
+            @RequestHeader("guestUuid") String guestUuid
+    ){
+        return ApiResponse.success(memberService.getOnboardingStatus(guestUuid));
+    }
+
+    @Override
+    @PostMapping("/onboarding/skip")
+    public ApiResponse<OnboardingStatusResDto> skipOnboarding(
+            @RequestHeader("guestUuid") String guestUuid
+    ) {
+        return ApiResponse.success(memberService.skipOnboarding(guestUuid));
     }
 }

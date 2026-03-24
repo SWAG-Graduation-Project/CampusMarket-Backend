@@ -55,6 +55,11 @@ public class Member {
     @Column(name = "프로필완료여부", nullable = false)
     private Boolean profileCompleted;
 
+    @Column(name = "약관동의완료여부", nullable = false)
+    private Boolean termsCompleted;
+
+    @Column(name = "온보딩스킵여부", nullable = false)
+    private Boolean onboardingSkipped;
 
     @Column(name = "생성일")
     private LocalDateTime createdAt;
@@ -76,7 +81,9 @@ public class Member {
                    String profileImageUrl,
                    String lockerName,
                    String timetableImageUrl,
-                   Boolean profileCompleted
+                   Boolean profileCompleted,
+                   Boolean termsCompleted,
+                   Boolean onboardingSkipped
     ){
         this.guestUuid = guestUuid;
         this.loginId = loginId;
@@ -89,6 +96,8 @@ public class Member {
         this.lockerName = lockerName;
         this.timetableImageUrl = timetableImageUrl;
         this.profileCompleted = profileCompleted;
+        this.termsCompleted = termsCompleted;
+        this.onboardingSkipped = onboardingSkipped;
     }
 
     @PrePersist
@@ -103,6 +112,14 @@ public class Member {
 
         if (this.profileCompleted == null) {
             this.profileCompleted = false;
+        }
+
+        if (this.termsCompleted == null) {
+            this.termsCompleted = false;
+        }
+
+        if (this.onboardingSkipped == null) {
+            this.onboardingSkipped = false;
         }
     }
     @PreUpdate
@@ -153,6 +170,14 @@ public class Member {
                 && profileImageUrl != null && !profileImageUrl.isBlank()
                 && lockerName != null && !lockerName.isBlank()
                 && timetableImageUrl != null && !timetableImageUrl.isBlank();
+    }
+
+    public void skipOnboarding() {
+        this.onboardingSkipped = true;
+    }
+
+    public void completeTerms() {
+        this.termsCompleted = true;
     }
 
 }
