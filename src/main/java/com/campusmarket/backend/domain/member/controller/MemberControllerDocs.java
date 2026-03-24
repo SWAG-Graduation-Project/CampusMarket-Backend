@@ -3,6 +3,7 @@ import com.campusmarket.backend.domain.member.dto.request.MemberProfileCreateReq
 import com.campusmarket.backend.domain.member.dto.request.MemberProfileUpdateReqDto;
 import com.campusmarket.backend.domain.member.dto.response.MemberProfileResDto;
 import com.campusmarket.backend.domain.member.dto.response.NicknameCheckResDto;
+import com.campusmarket.backend.domain.member.dto.response.OnboardingStatusResDto;
 import com.campusmarket.backend.domain.member.dto.response.RandomNicknameResDto;
 import com.campusmarket.backend.global.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,6 +48,18 @@ public interface MemberControllerDocs {
 
     @Operation(summary = "내 회원 프로필 조회", description = "현재 회원의 프로필 정보를 조회합니다.")
     ApiResponse<MemberProfileResDto> getProfile(
+            @Parameter(description = "게스트 UUID", required = true)
+            @RequestHeader("guestUuid") String guestUuid
+    );
+
+    @Operation(summary = "회원 온보딩 상태 조회", description = "현재 회원의 온보딩 완료 여부를 조회합니다.")
+    ApiResponse<OnboardingStatusResDto> getOnboardingStatus(
+            @Parameter(description = "게스트 UUID", required = true)
+            @RequestHeader("guestUuid") String guestUuid
+    );
+
+    @Operation(summary = "회원 온보딩 스킵", description = "현재 회원의 온보딩을 스킵 처리합니다.")
+    ApiResponse<OnboardingStatusResDto> skipOnboarding(
             @Parameter(description = "게스트 UUID", required = true)
             @RequestHeader("guestUuid") String guestUuid
     );

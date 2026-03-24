@@ -6,6 +6,7 @@ import com.campusmarket.backend.domain.member.dto.request.MemberProfileCreateReq
 import com.campusmarket.backend.domain.member.dto.request.MemberProfileUpdateReqDto;
 import com.campusmarket.backend.domain.member.dto.response.MemberProfileResDto;
 import com.campusmarket.backend.domain.member.dto.response.NicknameCheckResDto;
+import com.campusmarket.backend.domain.member.dto.response.OnboardingStatusResDto;
 import com.campusmarket.backend.domain.member.dto.response.RandomNicknameResDto;
 import com.campusmarket.backend.domain.member.entity.Member;
 import com.campusmarket.backend.domain.member.entity.RandomNickname;
@@ -234,6 +235,39 @@ public class MemberService {
                 member.getLockerName(),
                 member.getTimetableImageUrl(),
                 member.getProfileCompleted()
+        );
+    }
+
+    /**
+     * 온보딩 상태 조회
+     */
+    public OnboardingStatusResDto getOnboardingStatus(String guestUuid){
+        Member member = findMemberByGuestUuid(guestUuid);
+
+        return toOnboardingStatusResDto(member);
+    }
+
+    /**
+     * 온보딩 스킵 처리
+     */
+    @Transactional
+    public OnboardingStatusResDto skipOnboarding(String guestUuid){
+        Member member = findMemberByGuestUuid(guestUuid);
+
+        member.skipOnboarding();
+
+        return toOnboardingStatusResDto(member);
+    }
+
+    private OnboardingStatusResDto toOnboardingStatusResDto(Member member){
+        boolean canEnterMain =
+                (Boolean.TRUE.equals(member.getProfileCompleted()) && Boolean.TRUE.equals(member.getTermsCompleted()))
+                        || Boolean.TRUE.equals(member.getOnboardingSkipped());
+
+        return OnboardingStatusResDto.of(
+                member.getProfileCompleted(),
+                member.getTermsCompleted(),
+                canEnterMain
         );
     }
 
