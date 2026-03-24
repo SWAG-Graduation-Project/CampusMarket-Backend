@@ -212,10 +212,10 @@ public class MemberService {
         String nickname = normalizeNickname(rawNickname);
         validateNickname(nickname);
 
-        memberRepository.findByNickname(nickname)
+        memberRepository.findByNicknameIgnoreCase(nickname)
                 .ifPresent(foundMember -> {
                     if (!foundMember.getId().equals(currentMemberId)) {
-                        throw new MemberException(MemberErrorCode.NICKNAME_ALREADY_EXISTS);
+                        throw new MemberException(MemberErrorCode.DUPLICATE_NICKNAME);
                     }
                 });
 

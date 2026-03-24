@@ -17,9 +17,8 @@ public enum MemberErrorCode implements BaseErrorCode {
     RANDOM_NICKNAME_WORD_NOT_FOUND("MEMBER_006", "랜덤 닉네임 생성에 필요한 단어를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     RANDOM_NICKNAME_GENERATION_FAILED("MEMBER_007", "랜덤 닉네임 생성에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
 
-    NICKNAME_ALREADY_EXISTS("MEMBER_008", "이미 사용 중인 닉네임입니다.", HttpStatus.CONFLICT),
-    PROFILE_ALREADY_COMPLETED("MEMBER_009", "이미 프로필 최초 입력이 완료된 회원입니다.", HttpStatus.BAD_REQUEST),
-    INVALID_PROFILE_UPDATE_REQUEST("MEMBER_010", "수정할 프로필 정보가 없습니다.", HttpStatus.BAD_REQUEST);
+    PROFILE_ALREADY_COMPLETED("MEMBER_008", "이미 프로필 최초 입력이 완료된 회원입니다.", HttpStatus.BAD_REQUEST),
+    INVALID_PROFILE_UPDATE_REQUEST("MEMBER_009", "수정할 프로필 정보가 없습니다.", HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String message;
