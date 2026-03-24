@@ -259,14 +259,16 @@ public class MemberService {
         return toOnboardingStatusResDto(member);
     }
 
-    private OnboardingStatusResDto toOnboardingStatusResDto(Member member){
-        boolean canEnterMain =
-                (Boolean.TRUE.equals(member.getProfileCompleted()) && Boolean.TRUE.equals(member.getTermsCompleted()))
-                        || Boolean.TRUE.equals(member.getOnboardingSkipped());
+    private OnboardingStatusResDto toOnboardingStatusResDto(Member member) {
+        boolean profileCompleted = Boolean.TRUE.equals(member.getProfileCompleted());
+        boolean termsCompleted = Boolean.TRUE.equals(member.getTermsCompleted());
+        boolean onboardingSkipped = Boolean.TRUE.equals(member.getOnboardingSkipped());
+
+        boolean canEnterMain = (profileCompleted && termsCompleted) || onboardingSkipped;
 
         return OnboardingStatusResDto.of(
-                member.getProfileCompleted(),
-                member.getTermsCompleted(),
+                profileCompleted,
+                termsCompleted,
                 canEnterMain
         );
     }
