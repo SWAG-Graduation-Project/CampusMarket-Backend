@@ -40,6 +40,22 @@ public class Member {
     @Column(name = "상태", nullable = false, length = 20)
     private MemberStatus status;
 
+    @Column(name = "닉네임", length = 20, unique = true)
+    private String nickname;
+
+    @Column(name = "프로필이미지URL", length = 500)
+    private String profileImageUrl;
+
+    @Column(name = "사물함", length = 100)
+    private String lockerName;
+
+    @Column(name = "시간표URL", length = 500)
+    private String timetableImageUrl;
+
+    @Column(name = "프로필완료여부", nullable = false)
+    private Boolean profileCompleted;
+
+
     @Column(name = "생성일")
     private LocalDateTime createdAt;
 
@@ -55,7 +71,12 @@ public class Member {
                    String password,
                    String email,
                    LoginType loginType,
-                   MemberStatus status
+                   MemberStatus status,
+                   String nickname,
+                   String profileImageUrl,
+                   String lockerName,
+                   String timetableImageUrl,
+                   Boolean profileCompleted
     ){
         this.guestUuid = guestUuid;
         this.loginId = loginId;
@@ -63,6 +84,11 @@ public class Member {
         this.email = email;
         this.loginType = loginType;
         this.status = status;
+        this.nickname = nickname;
+        this.profileImageUrl = profileImageUrl;
+        this.lockerName = lockerName;
+        this.timetableImageUrl = timetableImageUrl;
+        this.profileCompleted = profileCompleted;
     }
 
     @PrePersist
@@ -74,10 +100,59 @@ public class Member {
         if (this.status == null) {
             this.status = MemberStatus.ACTIVE;
         }
+
+        if (this.profileCompleted == null) {
+            this.profileCompleted = false;
+        }
     }
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void createProfile(
+            String nickname,
+            String profileImageUrl,
+            String lockerName,
+            String timetableImageUrl
+    ) {
+        this.nickname = nickname;
+        this.profileImageUrl = profileImageUrl;
+        this.lockerName = lockerName;
+        this.timetableImageUrl = timetableImageUrl;
+        this.profileCompleted = true;
+    }
+
+    public void updateProfile(
+            String nickname,
+            String profileImageUrl,
+            String lockerName,
+            String timetableImageUrl
+    ) {
+        if (nickname != null) {
+            this.nickname = nickname;
+        }
+
+        if (profileImageUrl != null) {
+            this.profileImageUrl = profileImageUrl;
+        }
+
+        if (lockerName != null) {
+            this.lockerName = lockerName;
+        }
+
+        if (timetableImageUrl != null) {
+            this.timetableImageUrl = timetableImageUrl;
+        }
+
+        this.profileCompleted = isProfileFilled();
+    }
+
+    private boolean isProfileFilled() {
+        return nickname != null && !nickname.isBlank()
+                && profileImageUrl != null && !profileImageUrl.isBlank()
+                && lockerName != null && !lockerName.isBlank()
+                && timetableImageUrl != null && !timetableImageUrl.isBlank();
     }
 
 }

@@ -2,11 +2,16 @@ package com.campusmarket.backend.domain.member.service;
 
 import com.campusmarket.backend.domain.member.constant.MemberErrorCode;
 import com.campusmarket.backend.domain.member.constant.RandomNicknameWordType;
+import com.campusmarket.backend.domain.member.dto.request.MemberProfileCreateReqDto;
+import com.campusmarket.backend.domain.member.dto.request.MemberProfileUpdateReqDto;
+import com.campusmarket.backend.domain.member.dto.response.MemberProfileResDto;
 import com.campusmarket.backend.domain.member.dto.response.NicknameCheckResDto;
 import com.campusmarket.backend.domain.member.dto.response.RandomNicknameResDto;
+import com.campusmarket.backend.domain.member.entity.Member;
 import com.campusmarket.backend.domain.member.entity.RandomNickname;
 import com.campusmarket.backend.domain.member.exception.MemberException;
 import com.campusmarket.backend.domain.member.repository.MemberProfileRepository;
+import com.campusmarket.backend.domain.member.repository.MemberRepository;
 import com.campusmarket.backend.domain.member.repository.RandomNicknameRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +20,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Service
@@ -24,6 +30,7 @@ public class MemberService {
 
     private final MemberProfileRepository memberProfileRepository;
     private final RandomNicknameRepository randomNicknameRepository;
+    private final MemberRepository memberRepository;
 
     // 후보 생성 후 셔플하여 순회
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9]{2,12}$");
@@ -66,8 +73,8 @@ public class MemberService {
      * 닉네임 입력값 정리
      * null 체크 + trim 처리
      */
-    private String normalizeNickname(String rawNickname){
-        if (rawNickname == null){
+    private String normalizeNickname(String rawNickname) {
+        if (rawNickname == null) {
             throw new MemberException(MemberErrorCode.INVALID_NICKNAME);
         }
         return rawNickname.trim();
@@ -86,7 +93,7 @@ public class MemberService {
      * 2. 형식 검사
      * 3. 중복 검사
      */
-    public NicknameCheckResDto checkNickname(String rawNickname){
+    public NicknameCheckResDto checkNickname(String rawNickname) {
         String nickname = normalizeNickname(rawNickname);
         validateNickname(nickname);
 
@@ -117,6 +124,117 @@ public class MemberService {
         }
 
         return candidates;
+    }
+
+    /**
+     * 회원 프로필 최초 입력
+     */
+    @Transactional
+    public MemberProfileResDto createProfile(String guestUuid, MemberProfileCreateReqDto reqDto){
+        Member member = findMemberByGuestUuid(guestUuid);
+
+        if (Boolean.TRUE.equals(member.getProfileCompleted())){
+            throw new MemberException(MemberErrorCode.PROFILE_ALREADY_COMPLETED);
+        }
+
+        String nickname = validateAvailableNickname(reqDto.nickname(), member.getId());
+
+        member.createProfile(
+                nickname,
+                reqDto.profileImageUrl(),
+                reqDto.lockerName(),
+                reqDto.timetableImageUrl()
+        );
+
+        return toMemberProfileResDto(member);
+    }
+
+    /**
+     * 회원 프로필 수정
+     */
+    @Transactional
+    public MemberProfileResDto updateProfile(String guestUuid, MemberProfileUpdateReqDto reqDto) {
+        Member member = findMemberByGuestUuid(guestUuid);
+
+        if (reqDto.nickname() == null
+                && reqDto.profileImageUrl() == null
+                && reqDto.lockerName() == null
+                && reqDto.timetableImageUrl() == null) {
+            throw new MemberException(MemberErrorCode.INVALID_PROFILE_UPDATE_REQUEST);
+        }
+
+        String nickname = reqDto.nickname();
+
+        if (nickname != null) {
+            nickname = validateAvailableNickname(nickname, member.getId());
+        }
+
+        member.updateProfile(
+                nickname,
+                reqDto.profileImageUrl(),
+                reqDto.lockerName(),
+                reqDto.timetableImageUrl()
+        );
+
+        return toMemberProfileResDto(member);
+    }
+
+    /**
+     * 내 회원 프로필 조회
+     */
+    public MemberProfileResDto getProfile(String guestUuid) {
+        Member member = findMemberByGuestUuid(guestUuid);
+        return toMemberProfileResDto(member);
+    }
+
+    /**
+     * guestUuid로 회원 찾기
+     */
+    private Member findMemberByGuestUuid(String guestUuid) {
+        if (guestUuid == null || guestUuid.isBlank()) {
+            throw new MemberException(MemberErrorCode.INVALID_GUEST_UUID);
+        }
+
+        try {
+            UUID.fromString(guestUuid);
+        } catch (IllegalArgumentException e) {
+            throw new MemberException(MemberErrorCode.INVALID_GUEST_UUID_FORMAT);
+        }
+
+        return memberRepository.findByGuestUuid(guestUuid)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+    }
+
+    /**
+     * 저장 직전 닉네임 최종 검증
+     */
+    private String validateAvailableNickname(String rawNickname, Long currentMemberId) {
+        String nickname = normalizeNickname(rawNickname);
+        validateNickname(nickname);
+
+        memberRepository.findByNickname(nickname)
+                .ifPresent(foundMember -> {
+                    if (!foundMember.getId().equals(currentMemberId)) {
+                        throw new MemberException(MemberErrorCode.NICKNAME_ALREADY_EXISTS);
+                    }
+                });
+
+        return nickname;
+    }
+
+    /**
+     * 프로필 응답 DTO 변환
+     */
+    private MemberProfileResDto toMemberProfileResDto(Member member) {
+        return MemberProfileResDto.of(
+                member.getId(),
+                member.getGuestUuid(),
+                member.getNickname(),
+                member.getProfileImageUrl(),
+                member.getLockerName(),
+                member.getTimetableImageUrl(),
+                member.getProfileCompleted()
+        );
     }
 
 
