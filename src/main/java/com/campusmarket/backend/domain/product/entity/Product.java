@@ -119,11 +119,6 @@ public class Product {
     }
 
     public void increaseViewCount() {
-        if (this.viewCount == null) {
-            this.viewCount = 1;
-            return;
-        }
-
         this.viewCount += 1;
     }
 }

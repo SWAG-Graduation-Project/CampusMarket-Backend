@@ -5,6 +5,7 @@ import com.campusmarket.backend.domain.product.dto.response.ProductDetailInfo;
 import com.campusmarket.backend.domain.product.dto.response.ProductListItemInfo;
 import com.campusmarket.backend.domain.product.entity.ProductCondition;
 import com.campusmarket.backend.domain.product.entity.ProductSaleStatus;
+import com.campusmarket.backend.domain.product.exception.ProductException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
@@ -265,7 +266,7 @@ public class ProductQueryRepository {
             return timestamp.toLocalDateTime();
         }
 
-        return null;
+        throw new ProductException(ProductErrorCode.INVALID_PRODUCT_DATE_TYPE);
     }
 
     private ProductCondition toProductCondition(Object value) {

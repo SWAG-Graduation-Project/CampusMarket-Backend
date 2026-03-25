@@ -71,14 +71,16 @@ public class ProductService {
 
     @Transactional
     public ProductViewIncreaseResDto increaseViewCount(Long productId) {
-        validateProductId(productId);
+        int updatedCount = productRepository.increaseViewCount(productId, ProductSaleStatus.DELETED);
+
+        if (updatedCount == 0) {
+            throw new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND);
+        }
 
         Product product = productRepository.findByIdAndSaleStatusNot(productId, ProductSaleStatus.DELETED)
                 .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
 
-        product.increaseViewCount();
-
-        return productMapper.toProductViewIncreaseResDto(product);
+        return ProductViewIncreaseResDto.of(product.getId(), product.getViewCount());
     }
 
     private void validateProductId(Long productId) {
