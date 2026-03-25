@@ -1,6 +1,8 @@
 package com.campusmarket.backend.global.exception;
 
 import com.campusmarket.backend.domain.member.exception.MemberException;
+import com.campusmarket.backend.domain.product.exception.ProductException;
+import com.campusmarket.backend.global.ApiResponse;
 import com.campusmarket.backend.global.response.BaseResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -56,5 +58,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .badRequest()
                 .body(BaseResponse.onFailure("COMMON_400", "필수 헤더가 누락되었습니다."));
+    }
+
+    @ExceptionHandler(ProductException.class)
+    public ResponseEntity<BaseResponse<Void>> handleProductException(ProductException exception) {
+        BaseErrorCode errorCode = exception.getErrorCode();
+
+        return ResponseEntity
+                .status(errorCode.getStatus())
+                .body(BaseResponse.onFailure(errorCode.getCode(), errorCode.getMessage()));
     }
 }
