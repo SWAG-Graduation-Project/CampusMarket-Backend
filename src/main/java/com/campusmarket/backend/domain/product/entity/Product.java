@@ -151,4 +151,5 @@ public class Product {
         this.saleStatus = ProductSaleStatus.SOLD;
         this.soldAt = LocalDateTime.now();
     }
+
 }

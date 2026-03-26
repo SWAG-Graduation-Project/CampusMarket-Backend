@@ -2,7 +2,9 @@ package com.campusmarket.backend.domain.product.repository;
 
 import com.campusmarket.backend.domain.product.entity.Product;
 import com.campusmarket.backend.domain.product.entity.ProductSaleStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -46,4 +48,36 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("onSaleStatus") ProductSaleStatus onSaleStatus,
             @Param("now") LocalDateTime now
     );
+
+    Optional<Product> findByIdAndDeletedAtIsNull(Long productId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select p
+        from Product p
+        where p.id = :productId
+          and p.deletedAt is null
+    """)
+    Optional<Product> findByIdAndDeletedAtIsNullForUpdate(@Param("productId") Long productId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Product p
+        set p.wishCount = coalesce(p.wishCount, 0) + 1
+        where p.id = :productId
+          and p.deletedAt is null
+    """)
+    int increaseWishCount(@Param("productId") Long productId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Product p
+        set p.wishCount = case
+            when coalesce(p.wishCount, 0) > 0 then p.wishCount - 1
+            else 0
+        end
+        where p.id = :productId
+          and p.deletedAt is null
+    """)
+    int decreaseWishCount(@Param("productId") Long productId);
 }
