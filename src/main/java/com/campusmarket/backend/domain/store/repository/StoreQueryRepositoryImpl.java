@@ -10,7 +10,11 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class StoreQueryRepositoryImpl implements StoreQueryRepository {
@@ -32,16 +36,33 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
                 .setMaxResults(limit)
                 .getResultList();
 
-        return profiles.stream()
-                .map(profile -> StoreSummaryResDto.of(
-                        profile.getMember().getId(),
-                        profile.getNickname(),
-                        profile.getProfileImageUrl(),
-                        findLatestProductImageUrlBySellerId(profile.getMember().getId()),
-                        profile.getSaleCount(),
-                        profile.getPurchaseCount()
-                ))
+        if (profiles.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> sellerIds = profiles.stream()
+                .map(profile -> profile.getMember().getId())
                 .toList();
+
+        Map<Long, String> representativeImageMap =
+                findRepresentativeImageMapBySellerIds(sellerIds);
+
+        List<StoreSummaryResDto> result = new ArrayList<>();
+
+        for (MemberProfile profile : profiles) {
+            Long sellerId = profile.getMember().getId();
+
+            result.add(StoreSummaryResDto.of(
+                    sellerId,
+                    profile.getNickname(),
+                    profile.getProfileImageUrl(),
+                    representativeImageMap.get(sellerId),
+                    profile.getSaleCount(),
+                    profile.getPurchaseCount()
+            ));
+        }
+
+        return result;
     }
 
     @Override
@@ -76,7 +97,7 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
                         from Product p
                         where p.sellerId = :sellerId
                           and p.deletedAt is null
-                        order by p.createdAt desc
+                        order by p.createdAt desc, p.id desc
                         """,
                         Product.class
                 )
@@ -112,7 +133,7 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
             jpql += " and p.saleStatus = :saleStatus ";
         }
 
-        jpql += " order by p.createdAt desc ";
+        jpql += " order by p.createdAt desc, p.id desc ";
 
         var query = entityManager.createQuery(jpql, Product.class)
                 .setParameter("sellerId", sellerId)
@@ -163,27 +184,31 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
         return query.getSingleResult();
     }
 
-    private String findLatestProductImageUrlBySellerId(Long sellerId) {
-        List<String> imageUrls = entityManager.createQuery(
+    private Map<Long, String> findRepresentativeImageMapBySellerIds(List<Long> sellerIds) {
+        List<Object[]> rows = entityManager.createQuery(
                         """
-                        select pi.imageUrl
+                        select p.sellerId, pi.imageUrl, p.createdAt, p.id, pi.displayOrder
                         from ProductImage pi
                         join pi.product p
-                        where p.sellerId = :sellerId
+                        where p.sellerId in :sellerIds
                           and p.deletedAt is null
-                        order by p.createdAt desc, pi.displayOrder asc
+                        order by p.sellerId asc, p.createdAt desc, p.id desc, pi.displayOrder asc
                         """,
-                        String.class
+                        Object[].class
                 )
-                .setParameter("sellerId", sellerId)
-                .setMaxResults(1)
+                .setParameter("sellerIds", sellerIds)
                 .getResultList();
 
-        if (imageUrls.isEmpty()) {
-            return null;
+        Map<Long, String> imageMap = new HashMap<>();
+
+        for (Object[] row : rows) {
+            Long sellerId = (Long) row[0];
+            String imageUrl = (String) row[1];
+
+            imageMap.putIfAbsent(sellerId, imageUrl);
         }
 
-        return imageUrls.get(0);
+        return imageMap;
     }
 
     private String findThumbnailImageUrl(Long productId) {

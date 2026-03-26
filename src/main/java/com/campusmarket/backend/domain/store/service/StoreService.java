@@ -34,28 +34,23 @@ public class StoreService {
     private final StoreQueryRepository storeQueryRepository;
     private final StoreMapper storeMapper;
 
-    /**
-     * 상점 목록 조회
-     */
     public StoreListResDto getStores(Integer page, Integer size) {
         validatePage(page, size);
 
-        int offset = page * size;
+        long offsetLong = (long) page * size;
+        int offset = Math.toIntExact(offsetLong);
 
         List<StoreSummaryResDto> stores =
                 storeQueryRepository.findStoreSummaries(offset, size);
 
         long totalCount = storeQueryRepository.countStores();
-        boolean hasNext = totalCount > (long) (page + 1) * size;
+        long nextBoundary = ((long) page + 1) * size;
+        boolean hasNext = totalCount > nextBoundary;
 
         return StoreListResDto.of(stores, page, size, hasNext);
     }
 
-    /**
-     * 상점 상세 조회
-     */
     public StoreDetailResDto getStoreDetail(Long sellerId) {
-
         Member member = memberRepository.findById(sellerId)
                 .orElseThrow(() ->
                         new StoreException(StoreErrorCode.STORE_OWNER_NOT_FOUND)
@@ -72,11 +67,7 @@ public class StoreService {
         return storeMapper.toStoreDetailResDto(memberProfile, totalProductCount);
     }
 
-    /**
-     * 내 상점 메인 조회
-     */
     public MyStoreMainResDto getMyStore(String guestUuid) {
-
         Member member = memberRepository.findByGuestUuid(guestUuid)
                 .orElseThrow(() ->
                         new MemberException(MemberErrorCode.MEMBER_NOT_FOUND)
@@ -93,9 +84,6 @@ public class StoreService {
         return storeMapper.toMyStoreMainResDto(memberProfile, latestProducts);
     }
 
-    /**
-     * 내 상점 상품 목록 조회
-     */
     public MyStoreProductListResDto getMyStoreProducts(
             String guestUuid,
             String saleStatus,
@@ -109,10 +97,10 @@ public class StoreService {
                         new MemberException(MemberErrorCode.MEMBER_NOT_FOUND)
                 );
 
-        // ⭐ 핵심: String → Enum 변환
         ProductSaleStatus productSaleStatus = toProductSaleStatus(saleStatus);
 
-        int offset = page * size;
+        long offsetLong = (long) page * size;
+        int offset = Math.toIntExact(offsetLong);
 
         List<MyStoreProductSummaryResDto> products =
                 storeQueryRepository.findMyStoreProducts(
@@ -128,23 +116,18 @@ public class StoreService {
                         productSaleStatus
                 );
 
-        boolean hasNext = totalCount > (long) (page + 1) * size;
+        long nextBoundary = ((long) page + 1) * size;
+        boolean hasNext = totalCount > nextBoundary;
 
         return MyStoreProductListResDto.of(products, page, size, hasNext);
     }
 
-    /**
-     * 페이지 검증
-     */
     private void validatePage(Integer page, Integer size) {
         if (page == null || size == null || page < 0 || size <= 0) {
             throw new StoreException(StoreErrorCode.INVALID_PAGE_REQUEST);
         }
     }
 
-    /**
-     * saleStatus 문자열 → enum 변환
-     */
     private ProductSaleStatus toProductSaleStatus(String saleStatus) {
         if (saleStatus == null || saleStatus.isBlank()) {
             return null;
