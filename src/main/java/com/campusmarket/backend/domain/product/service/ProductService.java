@@ -1,11 +1,17 @@
 package com.campusmarket.backend.domain.product.service;
 
+import com.campusmarket.backend.domain.category.entity.MajorCategory;
+import com.campusmarket.backend.domain.category.entity.SubCategory;
+import com.campusmarket.backend.domain.category.repository.MajorCategoryRepository;
+import com.campusmarket.backend.domain.category.repository.SubCategoryRepository;
+import com.campusmarket.backend.domain.member.constant.MemberErrorCode;
+import com.campusmarket.backend.domain.member.entity.Member;
+import com.campusmarket.backend.domain.member.exception.MemberException;
+import com.campusmarket.backend.domain.member.repository.MemberRepository;
+import com.campusmarket.backend.domain.product.dto.request.ProductCreateReqDto;
+import com.campusmarket.backend.domain.product.dto.request.ProductImageItemReqDto;
 import com.campusmarket.backend.domain.product.dto.request.SearchProductsReqDto;
-import com.campusmarket.backend.domain.product.dto.response.ProductDetailInfo;
-import com.campusmarket.backend.domain.product.dto.response.ProductDetailResDto;
-import com.campusmarket.backend.domain.product.dto.response.ProductListItemInfo;
-import com.campusmarket.backend.domain.product.dto.response.ProductListResDto;
-import com.campusmarket.backend.domain.product.dto.response.ProductViewIncreaseResDto;
+import com.campusmarket.backend.domain.product.dto.response.*;
 import com.campusmarket.backend.domain.product.entity.Product;
 import com.campusmarket.backend.domain.product.entity.ProductImage;
 import com.campusmarket.backend.domain.product.entity.ProductSaleStatus;
@@ -20,6 +26,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -36,6 +44,9 @@ public class ProductService {
     private final WishRepository wishRepository;
     private final ProductQueryRepository productQueryRepository;
     private final ProductMapper productMapper;
+    private final MemberRepository memberRepository;
+    private final MajorCategoryRepository majorCategoryRepository;
+    private final SubCategoryRepository subCategoryRepository;
 
     public ProductListResDto searchProducts(SearchProductsReqDto reqDto) {
         int page = normalizePage(reqDto.page());
@@ -126,5 +137,84 @@ public class ProductService {
         }
 
         return sort;
+    }
+
+    @Transactional
+    public ProductCreateResDto createProduct(String guestUuid, ProductCreateReqDto reqDto) {
+        Member seller = memberRepository.findByGuestUuid(guestUuid)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        MajorCategory majorCategory = majorCategoryRepository.findById(reqDto.majorCategoryId())
+                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_MAJOR_CATEGORY_NOT_FOUND));
+
+        SubCategory subCategory = subCategoryRepository.findById(reqDto.subCategoryId())
+                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_SUB_CATEGORY_NOT_FOUND));
+
+        validateCreateProductRequest(reqDto, majorCategory, subCategory);
+
+        Product product = Product.builder()
+                .sellerId(seller.getId())
+                .majorCategoryId(reqDto.majorCategoryId())
+                .subCategoryId(reqDto.subCategoryId())
+                .name(reqDto.name())
+                .brand(reqDto.brand())
+                .color(reqDto.color())
+                .productCondition(reqDto.productCondition())
+                .description(reqDto.description())
+                .price(reqDto.price())
+                .isFree(reqDto.isFree())
+                .saleStatus(ProductSaleStatus.ON_SALE)
+                .viewCount(0)
+                .wishCount(0)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .soldAt(null)
+                .deletedAt(null)
+                .build();
+
+        Product savedProduct = productRepository.save(product);
+
+        saveProductImages(savedProduct, reqDto.images());
+
+        return ProductCreateResDto.of(savedProduct.getId());
+    }
+
+    private void validateCreateProductRequest(
+            ProductCreateReqDto reqDto,
+            MajorCategory majorCategory,
+            SubCategory subCategory
+    ) {
+        if (Boolean.TRUE.equals(reqDto.isFree()) && reqDto.price() != 0) {
+            throw new ProductException(ProductErrorCode.PRODUCT_INVALID_PRICE);
+        }
+
+        if (reqDto.images() == null || reqDto.images().isEmpty()) {
+            throw new ProductException(ProductErrorCode.PRODUCT_IMAGES_REQUIRED);
+        }
+
+        if (!subCategory.getMajorCategory().getId().equals(majorCategory.getId())) {
+            throw new ProductException(ProductErrorCode.PRODUCT_INVALID_CATEGORY_RELATION);
+        }
+    }
+
+    private void saveProductImages(Product product, List<ProductImageItemReqDto> images) {
+        List<ProductImage> productImages = new ArrayList<>();
+
+        for (int i = 0; i < images.size(); i++) {
+            ProductImageItemReqDto imageItem = images.get(i);
+
+            ProductImage productImage = ProductImage.builder()
+                    .product(product)
+                    .imageUrl(imageItem.imageUrl())
+                    .originalImageUrl(imageItem.imageUrl())
+                    .backgroundRemoved(false)
+                    .displayOrder(i + 1)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            productImages.add(productImage);
+        }
+
+        productImageRepository.saveAll(productImages);
     }
 }
