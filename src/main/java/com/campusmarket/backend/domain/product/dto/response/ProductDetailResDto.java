@@ -1,5 +1,6 @@
 package com.campusmarket.backend.domain.product.dto.response;
 
+import com.campusmarket.backend.domain.product.entity.Product;
 import com.campusmarket.backend.domain.product.entity.ProductCondition;
 import com.campusmarket.backend.domain.product.entity.ProductSaleStatus;
 
@@ -62,6 +63,28 @@ public record ProductDetailResDto(
                 images,
                 isWished,
                 canChat
+        );
+    }
+
+    public static ProductDetailResDto from(Product product) {
+        return ProductDetailResDto.of(
+                product.getId(),
+                product.getName(),
+                product.getBrand(),
+                product.getColor(),
+                product.getProductCondition(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getIsFree(),
+                product.getSaleStatus(),
+                product.getViewCount(),
+                product.getWishCount(),
+                product.getCreatedAt(),
+                null,
+                null,
+                List.of(),
+                false,
+                false
         );
     }
 }
