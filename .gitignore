@@ -40,3 +40,6 @@ application-secret.yml
 application-local.yml
 .env
 *.log
+
+.claude/
+CLAUDE.md
