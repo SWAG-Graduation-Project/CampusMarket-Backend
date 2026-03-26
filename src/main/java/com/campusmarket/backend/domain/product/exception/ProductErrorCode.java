@@ -14,7 +14,7 @@ public enum ProductErrorCode implements BaseErrorCode {
     INVALID_PRODUCT_PAGE("PRODUCT_003", "페이지 번호가 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
     INVALID_PRODUCT_SIZE("PRODUCT_004", "페이지 크기가 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
     INVALID_PRODUCT_SORT("PRODUCT_005", "정렬 조건이 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
-    INVALID_PRODUCT_DATE_TYPE("PRODUCT_006", "상품 날짜 데이터 타입이 올바르지 않습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    PRODUCT_INVALID_DATE_TYPE("PRODUCT_006", "상품 날짜 데이터 타입이 올바르지 않습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
 
     PRODUCT_MAJOR_CATEGORY_NOT_FOUND("PRODUCT_007", "존재하지 않는 대카테고리입니다.", HttpStatus.NOT_FOUND),
     PRODUCT_SUB_CATEGORY_NOT_FOUND("PRODUCT_002", "존재하지 않는 소카테고리입니다.", HttpStatus.NOT_FOUND),
