@@ -151,4 +151,14 @@ public class Product {
         this.saleStatus = ProductSaleStatus.SOLD;
         this.soldAt = LocalDateTime.now();
     }
+
+    public void increaseWishCount() {
+        this.wishCount += 1;
+    }
+
+    public void decreaseWishCount() {
+        if (this.wishCount > 0) {
+            this.wishCount -= 1;
+        }
+    }
 }

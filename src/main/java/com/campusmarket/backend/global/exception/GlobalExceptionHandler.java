@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MissingRequestHeaderException;
+import com.campusmarket.backend.domain.wishlist.exception.WishlistException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +73,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(StoreException.class)
     public ResponseEntity<BaseResponse<Void>> handleStoreException(StoreException exception) {
+        BaseErrorCode errorCode = exception.getErrorCode();
+
+        return ResponseEntity
+                .status(errorCode.getStatus())
+                .body(BaseResponse.onFailure(errorCode.getCode(), errorCode.getMessage()));
+    }
+
+    @ExceptionHandler(WishlistException.class)
+    public ResponseEntity<BaseResponse<Void>> handleWishlistException(WishlistException exception) {
         BaseErrorCode errorCode = exception.getErrorCode();
 
         return ResponseEntity

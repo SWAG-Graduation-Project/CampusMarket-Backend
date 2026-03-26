@@ -46,4 +46,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("onSaleStatus") ProductSaleStatus onSaleStatus,
             @Param("now") LocalDateTime now
     );
+
+    Optional<Product> findByIdAndDeletedAtIsNull(Long productId);
 }
