@@ -1,6 +1,8 @@
 package com.campusmarket.backend.domain.product.controller;
 
+import com.campusmarket.backend.domain.product.dto.request.ProductCreateReqDto;
 import com.campusmarket.backend.domain.product.dto.request.SearchProductsReqDto;
+import com.campusmarket.backend.domain.product.dto.response.ProductCreateResDto;
 import com.campusmarket.backend.domain.product.dto.response.ProductDetailResDto;
 import com.campusmarket.backend.domain.product.dto.response.ProductListResDto;
 import com.campusmarket.backend.domain.product.dto.response.ProductViewIncreaseResDto;
@@ -8,10 +10,8 @@ import com.campusmarket.backend.global.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Product", description = "상품 조회 관련 API")
 @RequestMapping("/products")
@@ -43,5 +43,11 @@ public interface ProductControllerDocs {
     ApiResponse<ProductViewIncreaseResDto> increaseViewCount(
             @Parameter(description = "상품 ID", example = "1")
             @PathVariable Long productId
+    );
+
+    @Operation(summary = "상품 등록", description = "판매자가 상품을 등록합니다.")
+    ApiResponse<ProductCreateResDto> createProduct(
+            @RequestHeader("X-Guest-UUID") String guestUuid,
+            @Valid @RequestBody ProductCreateReqDto reqDto
     );
 }

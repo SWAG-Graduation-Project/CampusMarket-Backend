@@ -10,6 +10,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import org.springframework.stereotype.Repository;
+import com.campusmarket.backend.domain.product.constant.ProductErrorCode;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
