@@ -268,6 +268,7 @@ public class ProductService {
     @Transactional(readOnly = true)
     public ProductDetailResDto getMyProductDetail(Long productId, String guestUuid) {
         Product product = getOwnedActiveProduct(productId, guestUuid);
+        List<ProductImage> images = productImageRepository.findAllByProduct_IdOrderByDisplayOrderAsc(productId);
 
         return ProductDetailResDto.of(
                 product.getId(),
@@ -284,7 +285,15 @@ public class ProductService {
                 product.getCreatedAt(),
                 null,
                 null,
-                List.of(),
+                images.stream()
+                        .map(img -> ProductImageResDto.of(
+                                img.getId(),
+                                img.getImageUrl(),
+                                img.getOriginalImageUrl(),
+                                img.getBackgroundRemoved(),
+                                img.getDisplayOrder()
+                        ))
+                        .toList(),
                 false,
                 false
         );
