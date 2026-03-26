@@ -142,7 +142,9 @@ public class Product {
     }
 
     public void delete() {
+        this.saleStatus = ProductSaleStatus.DELETED;
         this.deletedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void completeSale() {

@@ -221,14 +221,7 @@ public class ProductService {
 
     @Transactional
     public void updateProduct(Long productId, String guestUuid, ProductUpdateReqDto reqDto) {
-
-        Member seller = memberRepository.findByGuestUuid(guestUuid)
-                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
-
-        validateOwner(product, seller);
+        Product product = getOwnedActiveProduct(productId, guestUuid);
 
         if (Boolean.TRUE.equals(reqDto.isFree()) && reqDto.price() != 0) {
             throw new ProductException(ProductErrorCode.PRODUCT_INVALID_PRICE);
@@ -247,53 +240,76 @@ public class ProductService {
 
     @Transactional
     public void deleteProduct(Long productId, String guestUuid) {
-
-        Member seller = memberRepository.findByGuestUuid(guestUuid)
-                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
-
-        validateOwner(product, seller);
-
+        Product product = getOwnedActiveProduct(productId, guestUuid);
         product.delete();
     }
 
     @Transactional
     public void completeSale(Long productId, String guestUuid) {
-
-        Member seller = memberRepository.findByGuestUuid(guestUuid)
-                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
-
+        Member seller = getSellerByGuestUuid(guestUuid);
+        Product product = getActiveProduct(productId);
         validateOwner(product, seller);
 
-        if (product.getSaleStatus() == ProductSaleStatus.SOLD) {
+        LocalDateTime now = LocalDateTime.now();
+
+        int updatedRows = productRepository.markAsSoldIfOnSale(
+                productId,
+                seller.getId(),
+                ProductSaleStatus.SOLD,
+                ProductSaleStatus.ON_SALE,
+                now
+        );
+
+        if (updatedRows == 0) {
             throw new ProductException(ProductErrorCode.PRODUCT_ALREADY_SOLD);
         }
-
-        product.completeSale();
     }
 
     @Transactional(readOnly = true)
     public ProductDetailResDto getMyProductDetail(Long productId, String guestUuid) {
+        Product product = getOwnedActiveProduct(productId, guestUuid);
 
-        Member seller = memberRepository.findByGuestUuid(guestUuid)
-                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
-
-        validateOwner(product, seller);
-
-        return ProductDetailResDto.from(product);
+        return ProductDetailResDto.of(
+                product.getId(),
+                product.getName(),
+                product.getBrand(),
+                product.getColor(),
+                product.getProductCondition(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getIsFree(),
+                product.getSaleStatus(),
+                product.getViewCount(),
+                product.getWishCount(),
+                product.getCreatedAt(),
+                null,
+                null,
+                List.of(),
+                false,
+                false
+        );
     }
 
     private void validateOwner(Product product, Member seller) {
         if (!product.getSellerId().equals(seller.getId())) {
             throw new ProductException(ProductErrorCode.PRODUCT_FORBIDDEN);
         }
+    }
+
+    private Member getSellerByGuestUuid(String guestUuid) {
+        return memberRepository.findByGuestUuid(guestUuid)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+    }
+
+    private Product getActiveProduct(Long productId) {
+        return productRepository.findByIdAndDeletedAtIsNullAndSaleStatusNot(productId, ProductSaleStatus.DELETED)
+                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
+    }
+
+    private Product getOwnedActiveProduct(Long productId, String guestUuid) {
+        Member seller = getSellerByGuestUuid(guestUuid);
+        Product product = getActiveProduct(productId);
+        validateOwner(product, seller);
+        return product;
     }
 }
