@@ -10,6 +10,7 @@ import com.campusmarket.backend.domain.member.exception.MemberException;
 import com.campusmarket.backend.domain.member.repository.MemberRepository;
 import com.campusmarket.backend.domain.product.dto.request.ProductCreateReqDto;
 import com.campusmarket.backend.domain.product.dto.request.ProductImageItemReqDto;
+import com.campusmarket.backend.domain.product.dto.request.ProductUpdateReqDto;
 import com.campusmarket.backend.domain.product.dto.request.SearchProductsReqDto;
 import com.campusmarket.backend.domain.product.dto.response.*;
 import com.campusmarket.backend.domain.product.entity.Product;
@@ -216,5 +217,83 @@ public class ProductService {
         }
 
         productImageRepository.saveAll(productImages);
+    }
+
+    @Transactional
+    public void updateProduct(Long productId, String guestUuid, ProductUpdateReqDto reqDto) {
+
+        Member seller = memberRepository.findByGuestUuid(guestUuid)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
+
+        validateOwner(product, seller);
+
+        if (Boolean.TRUE.equals(reqDto.isFree()) && reqDto.price() != 0) {
+            throw new ProductException(ProductErrorCode.PRODUCT_INVALID_PRICE);
+        }
+
+        product.update(
+                reqDto.name(),
+                reqDto.brand(),
+                reqDto.color(),
+                reqDto.productCondition(),
+                reqDto.description(),
+                reqDto.price(),
+                reqDto.isFree()
+        );
+    }
+
+    @Transactional
+    public void deleteProduct(Long productId, String guestUuid) {
+
+        Member seller = memberRepository.findByGuestUuid(guestUuid)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
+
+        validateOwner(product, seller);
+
+        product.delete();
+    }
+
+    @Transactional
+    public void completeSale(Long productId, String guestUuid) {
+
+        Member seller = memberRepository.findByGuestUuid(guestUuid)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
+
+        validateOwner(product, seller);
+
+        if (product.getSaleStatus() == ProductSaleStatus.SOLD) {
+            throw new ProductException(ProductErrorCode.PRODUCT_ALREADY_SOLD);
+        }
+
+        product.completeSale();
+    }
+
+    @Transactional(readOnly = true)
+    public ProductDetailResDto getMyProductDetail(Long productId, String guestUuid) {
+
+        Member seller = memberRepository.findByGuestUuid(guestUuid)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
+
+        validateOwner(product, seller);
+
+        return ProductDetailResDto.from(product);
+    }
+
+    private void validateOwner(Product product, Member seller) {
+        if (!product.getSellerId().equals(seller.getId())) {
+            throw new ProductException(ProductErrorCode.PRODUCT_FORBIDDEN);
+        }
     }
 }

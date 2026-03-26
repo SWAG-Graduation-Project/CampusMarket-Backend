@@ -121,4 +121,32 @@ public class Product {
     public void increaseViewCount() {
         this.viewCount += 1;
     }
+
+    public void update(
+            String name,
+            String brand,
+            String color,
+            ProductCondition condition,
+            String description,
+            Integer price,
+            Boolean isFree
+    ) {
+        this.name = name;
+        this.brand = brand;
+        this.color = color;
+        this.productCondition = condition;
+        this.description = description;
+        this.price = price;
+        this.isFree = isFree;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void completeSale() {
+        this.saleStatus = ProductSaleStatus.SOLD;
+        this.soldAt = LocalDateTime.now();
+    }
 }
