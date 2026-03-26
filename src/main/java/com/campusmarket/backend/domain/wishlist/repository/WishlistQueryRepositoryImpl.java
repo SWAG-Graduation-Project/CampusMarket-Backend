@@ -6,7 +6,9 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class WishlistQueryRepositoryImpl implements WishlistQueryRepository {
@@ -36,13 +38,23 @@ public class WishlistQueryRepositoryImpl implements WishlistQueryRepository {
                 .setMaxResults(limit)
                 .getResultList();
 
+        if (products.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> productIds = products.stream()
+                .map(Product::getId)
+                .toList();
+
+        Map<Long, String> thumbnailMap = findThumbnailMap(productIds);
+
         return products.stream()
                 .map(product -> WishlistProductResDto.of(
                         product.getId(),
                         product.getName(),
                         product.getPrice(),
                         product.getSaleStatus().name(),
-                        findThumbnailImageUrl(product.getId()),
+                        thumbnailMap.get(product.getId()),
                         product.getWishCount(),
                         product.getCreatedAt()
                 ))
@@ -65,24 +77,31 @@ public class WishlistQueryRepositoryImpl implements WishlistQueryRepository {
                 .getSingleResult();
     }
 
-    private String findThumbnailImageUrl(Long productId) {
-        List<String> imageUrls = entityManager.createQuery(
+    private Map<Long, String> findThumbnailMap(List<Long> productIds) {
+        List<Object[]> rows = entityManager.createQuery(
                         """
-                        select pi.imageUrl
+                        select pi.product.id, pi.imageUrl
                         from ProductImage pi
-                        where pi.product.id = :productId
-                        order by pi.displayOrder asc
+                        where pi.product.id in :productIds
+                          and pi.displayOrder = (
+                              select min(pi2.displayOrder)
+                              from ProductImage pi2
+                              where pi2.product.id = pi.product.id
+                          )
                         """,
-                        String.class
+                        Object[].class
                 )
-                .setParameter("productId", productId)
-                .setMaxResults(1)
+                .setParameter("productIds", productIds)
                 .getResultList();
 
-        if (imageUrls.isEmpty()) {
-            return null;
+        Map<Long, String> thumbnailMap = new HashMap<>();
+
+        for (Object[] row : rows) {
+            Long productId = (Long) row[0];
+            String imageUrl = (String) row[1];
+            thumbnailMap.put(productId, imageUrl);
         }
 
-        return imageUrls.get(0);
+        return thumbnailMap;
     }
 }

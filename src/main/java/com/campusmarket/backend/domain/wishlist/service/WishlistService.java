@@ -16,11 +16,13 @@ import com.campusmarket.backend.domain.wishlist.exception.WishlistException;
 import com.campusmarket.backend.domain.wishlist.repository.WishlistQueryRepository;
 import com.campusmarket.backend.domain.wishlist.repository.WishlistRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,10 +36,12 @@ public class WishlistService {
 
     @Transactional
     public WishlistToggleResDto toggleWishlist(String guestUuid, Long productId) {
+        validateGuestUuid(guestUuid);
+
         Member member = memberRepository.findByGuestUuid(guestUuid)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-        Product product = productRepository.findByIdAndDeletedAtIsNull(productId)
+        Product product = productRepository.findByIdAndDeletedAtIsNullForUpdate(productId)
                 .orElseThrow(() -> new WishlistException(WishlistErrorCode.PRODUCT_NOT_FOUND));
 
         if (product.getSaleStatus() == ProductSaleStatus.DELETED) {
@@ -45,8 +49,8 @@ public class WishlistService {
         }
 
         return wishlistRepository.findByMemberIdAndProductId(member.getId(), productId)
-                .map(existingWishlist -> removeWishlist(existingWishlist, product))
-                .orElseGet(() -> addWishlist(member.getId(), product));
+                .map(existingWishlist -> removeWishlist(existingWishlist, productId))
+                .orElseGet(() -> addWishlist(member.getId(), productId));
     }
 
     public WishlistProductListResDto getWishlistProducts(
@@ -54,6 +58,7 @@ public class WishlistService {
             Integer page,
             Integer size
     ) {
+        validateGuestUuid(guestUuid);
         validatePage(page, size);
 
         Member member = memberRepository.findByGuestUuid(guestUuid)
@@ -76,38 +81,67 @@ public class WishlistService {
     }
 
     @Transactional
-    protected WishlistToggleResDto addWishlist(Long memberId, Product product) {
+    protected WishlistToggleResDto addWishlist(Long memberId, Long productId) {
         Wishlist wishlist = Wishlist.builder()
                 .memberId(memberId)
-                .productId(product.getId())
+                .productId(productId)
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        wishlistRepository.save(wishlist);
-        product.increaseWishCount();
+        try {
+            wishlistRepository.saveAndFlush(wishlist);
+        } catch (DataIntegrityViolationException e) {
+            Wishlist existingWishlist = wishlistRepository.findByMemberIdAndProductId(memberId, productId)
+                    .orElseThrow(() -> e);
+
+            return removeWishlist(existingWishlist, productId);
+        }
+
+        productRepository.increaseWishCount(productId);
+
+        Integer wishCount = productRepository.findByIdAndDeletedAtIsNull(productId)
+                .map(Product::getWishCount)
+                .orElse(0);
 
         return WishlistToggleResDto.of(
-                product.getId(),
+                productId,
                 true,
-                product.getWishCount()
+                wishCount
         );
     }
 
     @Transactional
-    protected WishlistToggleResDto removeWishlist(Wishlist wishlist, Product product) {
+    protected WishlistToggleResDto removeWishlist(Wishlist wishlist, Long productId) {
         wishlistRepository.delete(wishlist);
-        product.decreaseWishCount();
+        wishlistRepository.flush();
+
+        productRepository.decreaseWishCount(productId);
+
+        Integer wishCount = productRepository.findByIdAndDeletedAtIsNull(productId)
+                .map(Product::getWishCount)
+                .orElse(0);
 
         return WishlistToggleResDto.of(
-                product.getId(),
+                productId,
                 false,
-                product.getWishCount()
+                wishCount
         );
     }
 
     private void validatePage(Integer page, Integer size) {
         if (page == null || size == null || page < 0 || size <= 0) {
             throw new WishlistException(WishlistErrorCode.INVALID_PAGE_REQUEST);
+        }
+
+        long offsetLong = (long) page * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new WishlistException(WishlistErrorCode.INVALID_PAGE_REQUEST);
+        }
+    }
+
+    private void validateGuestUuid(String guestUuid) {
+        if (guestUuid == null || guestUuid.isBlank()) {
+            throw new MemberException(MemberErrorCode.INVALID_GUEST_UUID);
         }
     }
 }
