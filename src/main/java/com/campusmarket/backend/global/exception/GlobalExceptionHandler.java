@@ -2,6 +2,7 @@ package com.campusmarket.backend.global.exception;
 
 import com.campusmarket.backend.domain.member.exception.MemberException;
 import com.campusmarket.backend.domain.product.exception.ProductException;
+import com.campusmarket.backend.domain.store.exception.StoreException;
 import com.campusmarket.backend.global.ApiResponse;
 import com.campusmarket.backend.global.response.BaseResponse;
 import org.springframework.http.ResponseEntity;
@@ -62,6 +63,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ProductException.class)
     public ResponseEntity<BaseResponse<Void>> handleProductException(ProductException exception) {
+        BaseErrorCode errorCode = exception.getErrorCode();
+
+        return ResponseEntity
+                .status(errorCode.getStatus())
+                .body(BaseResponse.onFailure(errorCode.getCode(), errorCode.getMessage()));
+    }
+
+    @ExceptionHandler(StoreException.class)
+    public ResponseEntity<BaseResponse<Void>> handleStoreException(StoreException exception) {
         BaseErrorCode errorCode = exception.getErrorCode();
 
         return ResponseEntity
