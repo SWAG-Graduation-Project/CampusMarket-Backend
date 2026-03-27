@@ -16,6 +16,7 @@ public record ProductListItemInfo(
         ProductSaleStatus saleStatus,
         Integer viewCount,
         Integer wishCount,
+        String displayAssetImageUrl,
         String thumbnailImageUrl,
         LocalDateTime createdAt
 ) {

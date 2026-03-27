@@ -67,6 +67,9 @@ public class Product {
     @Column(name = "찜수", nullable = false)
     private Integer wishCount;
 
+    @Column(name = "대표에셋이미지URL", length = 500)
+    private String displayAssetImageUrl;
+
     @Column(name = "생성일")
     private LocalDateTime createdAt;
 
@@ -93,6 +96,7 @@ public class Product {
             Boolean isFree,
             ProductSaleStatus saleStatus,
             Integer viewCount,
+            String displayAssetImageUrl,
             Integer wishCount,
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
@@ -111,6 +115,7 @@ public class Product {
         this.isFree = isFree;
         this.saleStatus = saleStatus;
         this.viewCount = viewCount;
+        this.displayAssetImageUrl = displayAssetImageUrl;
         this.wishCount = wishCount;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -150,6 +155,10 @@ public class Product {
     public void completeSale() {
         this.saleStatus = ProductSaleStatus.SOLD;
         this.soldAt = LocalDateTime.now();
+    }
+
+    public void updateDisplayAssetImageUrl(String displayAssetImageUrl) {
+        this.displayAssetImageUrl = displayAssetImageUrl;
     }
 
 }

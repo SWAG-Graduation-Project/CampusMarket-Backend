@@ -1,7 +1,9 @@
 package com.campusmarket.backend.domain.product.repository;
 
+import com.campusmarket.backend.domain.product.constant.ProductErrorCode;
 import com.campusmarket.backend.domain.product.dto.request.SearchProductsReqDto;
 import com.campusmarket.backend.domain.product.dto.response.ProductDetailInfo;
+import com.campusmarket.backend.domain.product.dto.response.ProductListItemInfo;
 import com.campusmarket.backend.domain.product.dto.response.ProductListItemInfo;
 import com.campusmarket.backend.domain.product.entity.ProductCondition;
 import com.campusmarket.backend.domain.product.entity.ProductSaleStatus;
@@ -10,7 +12,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import org.springframework.stereotype.Repository;
-import com.campusmarket.backend.domain.product.constant.ProductErrorCode;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -48,6 +49,7 @@ public class ProductQueryRepository {
                         ORDER BY pi.표시순서 ASC
                         LIMIT 1
                     ) AS thumbnailImageUrl,
+                    p.대표에셋이미지URL,
                     p.생성일
                 FROM 상품 p
                 WHERE p.판매상태 <> 'DELETED'
@@ -95,7 +97,8 @@ public class ProductQueryRepository {
                     toInteger(row[7]),
                     toInteger(row[8]),
                     toStringValue(row[9]),
-                    toLocalDateTime(row[10])
+                    toStringValue(row[10]),
+                    toLocalDateTime(row[11])
             ));
         }
 
@@ -157,7 +160,8 @@ public class ProductQueryRepository {
                     mp.닉네임,
                     mp.프로필이미지URL,
                     mp.상점시작일,
-                    mp.판매거래횟수
+                    mp.판매거래횟수,
+                    p.대표에셋이미지URL
                 FROM 상품 p
                 INNER JOIN 대카테고리 mc ON mc.대카테고리PK = p.대카테고리ID
                 INNER JOIN 소카테고리 sc ON sc.소카테고리PK = p.소카테고리ID
@@ -199,7 +203,8 @@ public class ProductQueryRepository {
                 toStringValue(row[17]),
                 toStringValue(row[18]),
                 toLocalDateTime(row[19]),
-                toInteger(row[20])
+                toInteger(row[20]),
+                toStringValue(row[21])
         );
     }
 

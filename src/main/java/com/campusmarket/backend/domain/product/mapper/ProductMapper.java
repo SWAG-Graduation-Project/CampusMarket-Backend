@@ -31,6 +31,7 @@ public class ProductMapper {
                 info.viewCount(),
                 info.wishCount(),
                 info.thumbnailImageUrl(),
+                info.displayAssetImageUrl(),
                 info.createdAt()
         );
     }
@@ -86,8 +87,8 @@ public class ProductMapper {
                 info.sellerId(),
                 info.sellerNickname(),
                 info.sellerProfileImageUrl(),
-                info.sellerStoreStartedAt(),
-                info.sellerSaleCount()
+                info.storeStartDate(),
+                info.saleCount()
         );
 
         List<ProductImageResDto> imageDtos = images.stream()
@@ -106,6 +107,7 @@ public class ProductMapper {
                 info.saleStatus(),
                 info.viewCount(),
                 info.wishCount(),
+                info.displayAssetImageUrl(),
                 info.createdAt(),
                 category,
                 seller,
