@@ -1,4 +1,4 @@
-package com.campusmarket.backend.global;
+package com.campusmarket.backend.global.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +21,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/guest").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
                         .anyRequest().permitAll()
                 );
 

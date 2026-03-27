@@ -16,6 +16,8 @@ public record MemberProfileCreateReqDto(
         String lockerName,
 
         @NotBlank(message = "시간표 이미지 URL은 필수입니다.")
-        String timetableImageUrl
+        String timetableImageUrl,
+
+        String timetableData  // JSON: {"classes": [...]}
 ) {
 }

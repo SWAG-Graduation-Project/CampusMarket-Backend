@@ -4,6 +4,7 @@ import com.campusmarket.backend.domain.category.entity.MajorCategory;
 import com.campusmarket.backend.domain.category.entity.SubCategory;
 import com.campusmarket.backend.domain.category.repository.MajorCategoryRepository;
 import com.campusmarket.backend.domain.category.repository.SubCategoryRepository;
+import com.campusmarket.backend.domain.chat.service.ChatSystemMessageService;
 import com.campusmarket.backend.domain.member.constant.MemberErrorCode;
 import com.campusmarket.backend.domain.member.entity.Member;
 import com.campusmarket.backend.domain.member.exception.MemberException;
@@ -64,6 +65,7 @@ public class ProductService {
     private final ProductTempImageRepository productTempImageRepository;
     private final ProductDisplayAssetService productDisplayAssetService;
     private final FileStorageService fileStorageService;
+    private final ChatSystemMessageService chatSystemMessageService;
 
     public ProductListResDto searchProducts(SearchProductsReqDto reqDto) {
         int page = normalizePage(reqDto.page());
@@ -287,6 +289,8 @@ public class ProductService {
         if (updatedRows == 0) {
             throw new ProductException(ProductErrorCode.PRODUCT_ALREADY_SOLD);
         }
+
+        chatSystemMessageService.sendProductSoldMessage(productId);
     }
 
     @Transactional(readOnly = true)
