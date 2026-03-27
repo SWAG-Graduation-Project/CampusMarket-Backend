@@ -7,11 +7,11 @@ import com.campusmarket.backend.domain.member.entity.Member;
 import com.campusmarket.backend.domain.member.exception.MemberException;
 import com.campusmarket.backend.domain.member.repository.MemberRepository;
 import com.campusmarket.backend.domain.report.constant.ReportErrorCode;
+import com.campusmarket.backend.domain.report.constant.ReportReasonType;
 import com.campusmarket.backend.domain.report.dto.request.ReportCreateReqDto;
 import com.campusmarket.backend.domain.report.dto.response.ReportResDto;
 import com.campusmarket.backend.domain.report.entity.Report;
 import com.campusmarket.backend.domain.report.exception.ReportException;
-import com.campusmarket.backend.domain.report.mapper.ReportMapper;
 import com.campusmarket.backend.domain.report.repository.ReportRepository;
 import com.campusmarket.backend.global.mail.MailService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,6 @@ public class ReportService {
     private final ChatRoomRepository chatRoomRepository;
     private final MemberRepository memberRepository;
     private final MailService mailService;
-    private final ReportMapper reportMapper;
 
     @Transactional
     public ReportResDto createReport(String guestUuid, Long chatRoomId, ReportCreateReqDto reqDto) {
@@ -42,6 +41,11 @@ public class ReportService {
 
         if (reportRepository.existsByReporterIdAndChatRoomId(reporter.getId(), chatRoomId)) {
             throw new ReportException(ReportErrorCode.REPORT_DUPLICATE);
+        }
+
+        if (reqDto.reasonType() == ReportReasonType.OTHER &&
+                (reqDto.reasonDetail() == null || reqDto.reasonDetail().isBlank())) {
+            throw new ReportException(ReportErrorCode.REPORT_OTHER_DETAIL_REQUIRED);
         }
 
         Long reportedId = chatRoom.getOpponentId(reporter.getId());

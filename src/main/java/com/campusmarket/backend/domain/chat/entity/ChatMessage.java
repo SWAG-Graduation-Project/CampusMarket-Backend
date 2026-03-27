@@ -28,7 +28,7 @@ public class ChatMessage {
     private Long senderId;  // 시스템 메시지는 null
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "메시지유형", length = 30)
+    @Column(name = "메시지유형", length = 30, nullable = false)
     private MessageType messageType;
 
     @Column(name = "메시지내용", columnDefinition = "TEXT")
@@ -37,7 +37,7 @@ public class ChatMessage {
     @Column(name = "메타데이터", columnDefinition = "JSON")
     private String metadata;
 
-    @Column(name = "생성일")
+    @Column(name = "생성일", nullable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "삭제일")

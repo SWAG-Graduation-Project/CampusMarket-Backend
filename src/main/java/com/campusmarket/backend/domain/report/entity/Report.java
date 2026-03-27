@@ -11,7 +11,13 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "신고")
+@Table(
+        name = "신고",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_신고_신고자_채팅방",
+                columnNames = {"신고자ID", "채팅방ID"}
+        )
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Report {
@@ -31,17 +37,17 @@ public class Report {
     private Long chatRoomId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "신고사유유형", length = 30)
+    @Column(name = "신고사유유형", length = 30, nullable = false)
     private ReportReasonType reasonType;
 
     @Column(name = "기타사유상세", length = 500)
     private String reasonDetail;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "처리상태", length = 20)
+    @Column(name = "처리상태", length = 20, nullable = false)
     private ReportStatus status;
 
-    @Column(name = "신고일")
+    @Column(name = "신고일", nullable = false)
     private LocalDateTime reportedAt;
 
     @Builder

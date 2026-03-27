@@ -33,7 +33,7 @@ public class Block {
     @Column(name = "차단대상ID", nullable = false)
     private Long blockedId;
 
-    @Column(name = "생성일")
+    @Column(name = "생성일", nullable = false)
     private LocalDateTime createdAt;
 
     @Builder

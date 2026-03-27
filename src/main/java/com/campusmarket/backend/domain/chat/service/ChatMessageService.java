@@ -44,6 +44,7 @@ public class ChatMessageService {
 
         List<Long> senderIds = messages.stream()
                 .map(ChatMessage::getSenderId)
+                .filter(id -> id != null)
                 .distinct()
                 .toList();
 

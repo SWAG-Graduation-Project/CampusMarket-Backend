@@ -25,6 +25,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             """)
     long countByChatRoomId(@Param("chatRoomId") Long chatRoomId);
 
-    @Query("SELECT cm FROM ChatMessage cm WHERE cm.id IN :ids")
+    @Query("SELECT cm FROM ChatMessage cm WHERE cm.id IN :ids AND cm.deletedAt IS NULL")
     List<ChatMessage> findAllByIdIn(@Param("ids") List<Long> ids);
 }

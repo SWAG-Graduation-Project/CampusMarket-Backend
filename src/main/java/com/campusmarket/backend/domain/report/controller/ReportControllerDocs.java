@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 @Tag(name = "Report", description = "신고 API")
 public interface ReportControllerDocs {
 
-    @Operation(summary = "채팅방 신고", description = "채팅방 상대방을 신고. 동일 채팅방 중복 신고 불가. 입력되는 uuid는 상대방의 uuid")
+    @Operation(summary = "채팅방 신고", description = "채팅방 상대방을 신고. 동일 채팅방 중복 신고 불가.")
     ApiResponse<ReportResDto> createReport(
             @Parameter(hidden = true) @RequestHeader("guestUuid") String guestUuid,
             @PathVariable Long chatRoomId,

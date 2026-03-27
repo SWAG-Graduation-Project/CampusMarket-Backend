@@ -97,9 +97,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
-    public ResponseEntity<Void> handleNoResourceFoundException(
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFoundException(
         org.springframework.web.servlet.resource.NoResourceFoundException e) {
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.status(GlobalErrorCode.NOT_FOUND.getStatus())
+                .body(ApiResponse.failure(GlobalErrorCode.NOT_FOUND.getCode(), GlobalErrorCode.NOT_FOUND.getMessage()));
     }
 
 }
