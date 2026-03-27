@@ -24,9 +24,13 @@ import com.campusmarket.backend.domain.product.exception.ProductErrorCode;
 import com.campusmarket.backend.domain.product.exception.ProductException;
 import com.campusmarket.backend.domain.product.repository.ProductImageRepository;
 import com.campusmarket.backend.domain.product.repository.ProductRepository;
+import com.campusmarket.backend.domain.chat.dto.response.ChatMessageResDto;
+import com.campusmarket.backend.global.file.FileStorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -46,6 +50,9 @@ public class ChatRoomService {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final ChatMapper chatMapper;
+    private final FileStorageService fileStorageService;
+    private final ChatMessageService chatMessageService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // 채팅방 입장 - 기존 방이 있으면 반환, 없으면 신규 생성
     @Transactional
@@ -90,6 +97,19 @@ public class ChatRoomService {
                 member.getId(), ChatRoomStatus.DELETED
         );
         return buildChatRoomList(chatRooms, member.getId());
+    }
+
+    // 채팅 이미지 업로드 - 참여자 검증 후 S3 업로드, IMAGE 메시지 저장 및 WebSocket 브로드캐스트
+    @Transactional
+    public ChatMessageResDto uploadChatImage(String guestUuid, Long chatRoomId, MultipartFile file) {
+        Member member = getMemberByGuestUuid(guestUuid);
+        ChatRoom chatRoom = getChatRoomAndValidateParticipant(chatRoomId, member.getId());
+        String imageUrl = fileStorageService.upload(file, "chats/" + chatRoomId).fileUrl();
+        ChatMessageResDto messageDto = chatMessageService.saveImageMessage(
+                chatRoom, member.getId(), imageUrl, member.getNickname()
+        );
+        messagingTemplate.convertAndSend("/sub/chat/" + chatRoomId, messageDto);
+        return messageDto;
     }
 
     // 채팅방 나가기 - 상태를 DELETED로 변경
@@ -172,7 +192,11 @@ public class ChatRoomService {
     }
 
     private Member getMemberByGuestUuid(String guestUuid) {
-        return memberRepository.findByGuestUuid(guestUuid)
+        Member member = memberRepository.findByGuestUuid(guestUuid)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+        if (member.isWithdrawn()) {
+            throw new MemberException(MemberErrorCode.MEMBER_WITHDRAWN);
+        }
+        return member;
     }
 }

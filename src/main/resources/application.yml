@@ -23,3 +23,8 @@ server:
 app:
   mail:
     admin-email: ${MAIL_ADMIN_EMAIL}
+
+ai:
+  base-url: https://watertrue-campusmarket.hf.space
+  api:
+    secret-key: ${AI_API_SECRET_KEY}

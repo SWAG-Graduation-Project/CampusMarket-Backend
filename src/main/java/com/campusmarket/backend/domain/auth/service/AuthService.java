@@ -36,7 +36,11 @@ public class AuthService {
             Optional<Member> existingMember = memberRepository.findByGuestUuid(guestUuid);
 
             if (existingMember.isPresent()) {
-                return authMapper.toGuestCreateRespDto(existingMember.get(), false);
+                Member existing = existingMember.get();
+                if (existing.isWithdrawn()) {
+                    throw new MemberException(MemberErrorCode.MEMBER_WITHDRAWN);
+                }
+                return authMapper.toGuestCreateRespDto(existing, false);
             }
 
             Member member = Member.builder()
@@ -52,7 +56,9 @@ public class AuthService {
         } catch (DataIntegrityViolationException e) {
             Member member = memberRepository.findByGuestUuid(guestUuid)
                     .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
-
+            if (member.isWithdrawn()) {
+                throw new MemberException(MemberErrorCode.MEMBER_WITHDRAWN);
+            }
             return authMapper.toGuestCreateRespDto(member, false);
         }
     }
@@ -63,7 +69,11 @@ public class AuthService {
         validateGuestUuid(guestUuid);
 
         Member member = memberRepository.findByGuestUuid(guestUuid)
-                .orElseThrow(()-> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        if (member.isWithdrawn()) {
+            throw new MemberException(MemberErrorCode.MEMBER_WITHDRAWN);
+        }
 
         return authMapper.toCurrentMemberInfoRespDto(member);
     }

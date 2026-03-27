@@ -11,7 +11,9 @@ import com.campusmarket.backend.domain.chat.service.TradeProposalService;
 import com.campusmarket.backend.global.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -88,6 +90,16 @@ public class ChatController implements ChatControllerDocs {
     ) {
         chatRoomService.leaveChatRoom(guestUuid, chatRoomId);
         return ApiResponse.success(null);
+    }
+
+    @Override
+    @PostMapping(value = "/{chatRoomId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<ChatMessageResDto> uploadChatImage(
+            @RequestHeader("guestUuid") String guestUuid,
+            @PathVariable Long chatRoomId,
+            @RequestPart("file") MultipartFile file
+    ) {
+        return ApiResponse.success(chatRoomService.uploadChatImage(guestUuid, chatRoomId, file));
     }
 
     @Override

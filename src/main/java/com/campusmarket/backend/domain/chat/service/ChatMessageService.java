@@ -1,6 +1,7 @@
 package com.campusmarket.backend.domain.chat.service;
 
 import com.campusmarket.backend.domain.chat.constant.ChatErrorCode;
+import com.campusmarket.backend.domain.chat.constant.MessageType;
 import com.campusmarket.backend.domain.chat.dto.request.SendMessageReqDto;
 import com.campusmarket.backend.domain.chat.dto.response.ChatMessageListResDto;
 import com.campusmarket.backend.domain.chat.dto.response.ChatMessageResDto;
@@ -66,11 +67,21 @@ public class ChatMessageService {
         );
     }
 
-    // WebSocket으로 메시지 전송 - DB 저장 후 STOMP 브로드캐스트용 응답 반환
+    // WebSocket으로 메시지 전송 - 탈퇴 사용자 차단, DB 저장 후 STOMP 브로드캐스트용 응답 반환
     @Transactional
     public ChatMessageResDto sendMessage(Long chatRoomId, SendMessageReqDto reqDto) {
         Member sender = getMemberByGuestUuid(reqDto.guestUuid());
         ChatRoom chatRoom = getChatRoomAndValidateParticipant(chatRoomId, sender.getId());
+
+        // 상대방 탈퇴 여부 확인 - 탈퇴 시 시스템 메시지 반환, 원본 메시지 저장 X
+        Long otherMemberId = sender.getId().equals(chatRoom.getSellerId())
+                ? chatRoom.getBuyerId()
+                : chatRoom.getSellerId();
+
+        Member otherMember = memberRepository.findById(otherMemberId).orElse(null);
+        if (otherMember != null && otherMember.isWithdrawn()) {
+            throw new ChatException(ChatErrorCode.CHAT_WITHDRAWN_USER);
+        }
 
         ChatMessage message = ChatMessage.builder()
                 .chatRoom(chatRoom)
@@ -86,6 +97,43 @@ public class ChatMessageService {
         return ChatMessageResDto.of(saved, sender.getNickname());
     }
 
+    // 이미지 메시지 저장 - 채팅방 이미지 업로드 REST API에서 호출
+    @Transactional
+    public ChatMessageResDto saveImageMessage(ChatRoom chatRoom, Long senderId, String imageUrl, String senderNickname) {
+        Long otherMemberId = senderId.equals(chatRoom.getSellerId())
+                ? chatRoom.getBuyerId()
+                : chatRoom.getSellerId();
+
+        Member otherMember = memberRepository.findById(otherMemberId).orElse(null);
+        if (otherMember != null && otherMember.isWithdrawn()) {
+            throw new ChatException(ChatErrorCode.CHAT_WITHDRAWN_USER);
+        }
+
+        ChatMessage message = ChatMessage.builder()
+                .chatRoom(chatRoom)
+                .senderId(senderId)
+                .messageType(MessageType.IMAGE)
+                .content(imageUrl)
+                .build();
+
+        ChatMessage saved = chatMessageRepository.save(message);
+        chatRoom.updateLastMessage(saved.getId(), saved.getCreatedAt());
+
+        return ChatMessageResDto.of(saved, senderNickname);
+    }
+
+    private ChatMessageResDto saveSystemMessage(ChatRoom chatRoom, String content) {
+        ChatMessage systemMessage = ChatMessage.builder()
+                .chatRoom(chatRoom)
+                .senderId(null)
+                .messageType(MessageType.SYSTEM)
+                .content(content)
+                .build();
+        ChatMessage saved = chatMessageRepository.save(systemMessage);
+        chatRoom.updateLastMessage(saved.getId(), saved.getCreatedAt());
+        return ChatMessageResDto.of(saved, "알 수 없음");
+    }
+
     private ChatRoom getChatRoomAndValidateParticipant(Long chatRoomId, Long memberId) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
                 .orElseThrow(() -> new ChatException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
@@ -96,7 +144,11 @@ public class ChatMessageService {
     }
 
     private Member getMemberByGuestUuid(String guestUuid) {
-        return memberRepository.findByGuestUuid(guestUuid)
+        Member member = memberRepository.findByGuestUuid(guestUuid)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+        if (member.isWithdrawn()) {
+            throw new MemberException(MemberErrorCode.MEMBER_WITHDRAWN);
+        }
+        return member;
     }
 }

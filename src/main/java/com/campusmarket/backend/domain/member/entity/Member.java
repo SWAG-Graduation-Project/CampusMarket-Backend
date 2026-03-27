@@ -49,6 +49,24 @@ public class Member {
     @Column(name = "사물함", length = 100)
     private String lockerName;
 
+    @Column(name = "사물함건물", length = 50)
+    private String lockerBuilding;
+
+    @Column(name = "사물함층", length = 20)
+    private String lockerFloor;
+
+    @Column(name = "사물함학과", length = 50)
+    private String lockerMajor;
+
+    @Column(name = "사물함그룹")
+    private Integer lockerGroup;
+
+    @Column(name = "사물함행")
+    private Integer lockerRow;
+
+    @Column(name = "사물함열")
+    private Integer lockerCol;
+
     @Column(name = "시간표URL", length = 500)
     private String timetableImageUrl;
 
@@ -136,13 +154,11 @@ public class Member {
             String nickname,
             String profileImageUrl,
             String lockerName,
-            String timetableImageUrl,
             String timetableData
     ) {
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
         this.lockerName = lockerName;
-        this.timetableImageUrl = timetableImageUrl;
         this.timetableData = timetableData;
         this.profileCompleted = true;
     }
@@ -151,13 +167,11 @@ public class Member {
             String nickname,
             String profileImageUrl,
             String lockerName,
-            String timetableImageUrl,
             String timetableData
     ) {
         if (nickname != null) this.nickname = nickname;
         if (profileImageUrl != null) this.profileImageUrl = profileImageUrl;
         if (lockerName != null) this.lockerName = lockerName;
-        if (timetableImageUrl != null) this.timetableImageUrl = timetableImageUrl;
         if (timetableData != null) this.timetableData = timetableData;
         this.profileCompleted = isProfileFilled();
     }
@@ -165,8 +179,7 @@ public class Member {
     private boolean isProfileFilled() {
         return nickname != null && !nickname.isBlank()
                 && profileImageUrl != null && !profileImageUrl.isBlank()
-                && lockerName != null && !lockerName.isBlank()
-                && timetableImageUrl != null && !timetableImageUrl.isBlank();
+                && lockerName != null && !lockerName.isBlank();
     }
 
     public void skipOnboarding() {
@@ -179,6 +192,44 @@ public class Member {
 
     public void updateTermsCompleted(Boolean termsCompleted){
         this.termsCompleted = termsCompleted;
+    }
+
+    // 사물함 위치 저장/수정
+    public void updateLocker(String lockerName, String lockerBuilding, String lockerFloor,
+                             String lockerMajor, Integer lockerGroup, Integer lockerRow, Integer lockerCol) {
+        this.lockerName = lockerName;
+        this.lockerBuilding = lockerBuilding;
+        this.lockerFloor = lockerFloor;
+        this.lockerMajor = lockerMajor;
+        this.lockerGroup = lockerGroup;
+        this.lockerRow = lockerRow;
+        this.lockerCol = lockerCol;
+    }
+
+    // 사물함 해제
+    public void deleteLocker() {
+        this.lockerName = null;
+        this.lockerBuilding = null;
+        this.lockerFloor = null;
+        this.lockerMajor = null;
+        this.lockerGroup = null;
+        this.lockerRow = null;
+        this.lockerCol = null;
+    }
+
+    // 시간표 데이터 저장
+    public void updateTimetable(String timetableData) {
+        if (timetableData != null) this.timetableData = timetableData;
+    }
+
+    // 회원 탈퇴 처리
+    public void withdraw() {
+        this.status = MemberStatus.WITHDRAWN;
+        this.withdrawnAt = java.time.LocalDateTime.now();
+    }
+
+    public boolean isWithdrawn() {
+        return this.status == MemberStatus.WITHDRAWN;
     }
 
 }

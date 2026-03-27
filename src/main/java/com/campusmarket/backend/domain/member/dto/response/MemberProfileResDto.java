@@ -6,7 +6,6 @@ public record MemberProfileResDto(
         String nickname,
         String profileImageUrl,
         String lockerName,
-        String timetableImageUrl,
         String timetableData,
         Boolean profileCompleted
 ) {
@@ -16,7 +15,6 @@ public record MemberProfileResDto(
             String nickname,
             String profileImageUrl,
             String lockerName,
-            String timetableImageUrl,
             String timetableData,
             Boolean profileCompleted
     ){
@@ -26,7 +24,6 @@ public record MemberProfileResDto(
                 nickname,
                 profileImageUrl,
                 lockerName,
-                timetableImageUrl,
                 timetableData,
                 profileCompleted
         );
