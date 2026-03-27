@@ -1,17 +1,14 @@
 package com.campusmarket.backend.domain.product.controller;
 
-import com.campusmarket.backend.domain.product.dto.request.ProductCreateReqDto;
-import com.campusmarket.backend.domain.product.dto.request.SearchProductsReqDto;
-import com.campusmarket.backend.domain.product.dto.response.ProductCreateResDto;
-import com.campusmarket.backend.domain.product.dto.response.ProductDetailResDto;
-import com.campusmarket.backend.domain.product.dto.response.ProductListResDto;
-import com.campusmarket.backend.domain.product.dto.response.ProductViewIncreaseResDto;
+import com.campusmarket.backend.domain.product.dto.request.*;
+import com.campusmarket.backend.domain.product.dto.response.*;
 import com.campusmarket.backend.global.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "Product", description = "상품 조회 관련 API")
 @RequestMapping("/products")
@@ -49,5 +46,42 @@ public interface ProductControllerDocs {
     ApiResponse<ProductCreateResDto> createProduct(
             @RequestHeader("X-Guest-UUID") String guestUuid,
             @Valid @RequestBody ProductCreateReqDto reqDto
+    );
+
+    ApiResponse<ProductTempImageResDto> uploadTempImage(
+            String guestUuid,
+            Long memberId,
+            MultipartFile file
+    );
+
+    ApiResponse<ProductDraftResDto> generateDraft(
+            String guestUuid,
+            Long memberId,
+            @Valid @RequestBody ProductDraftReqDto reqDto
+    );
+
+    ApiResponse<BackgroundRemovalResDto> removeBackground(
+            String guestUuid,
+            Long memberId,
+            @Valid @RequestBody BackgroundRemovalReqDto reqDto
+    );
+
+    ApiResponse<ProductTempImageResDto> replaceTempImage(
+            Long tempImageId,
+            String guestUuid,
+            Long memberId,
+            MultipartFile file
+    );
+
+    ApiResponse<Void> deleteTempImage(
+            Long tempImageId,
+            String guestUuid,
+            Long memberId
+    );
+
+    ApiResponse<ProductDraftResDto> redraft(
+            String guestUuid,
+            Long memberId,
+            @Valid @RequestBody ProductRedraftReqDto reqDto
     );
 }

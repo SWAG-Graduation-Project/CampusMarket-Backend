@@ -15,6 +15,7 @@ public record ProductListItemResDto(
         ProductSaleStatus saleStatus,
         Integer viewCount,
         Integer wishCount,
+        String displayAssetImageUrl,
         String thumbnailImageUrl,
         LocalDateTime createdAt
 ) {
@@ -28,6 +29,7 @@ public record ProductListItemResDto(
             ProductSaleStatus saleStatus,
             Integer viewCount,
             Integer wishCount,
+            String displayAssetImageUrl,
             String thumbnailImageUrl,
             LocalDateTime createdAt
     ) {
@@ -41,6 +43,7 @@ public record ProductListItemResDto(
                 saleStatus,
                 viewCount,
                 wishCount,
+                displayAssetImageUrl,
                 thumbnailImageUrl,
                 createdAt
         );

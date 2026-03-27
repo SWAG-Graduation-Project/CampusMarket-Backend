@@ -13,20 +13,33 @@ import com.campusmarket.backend.domain.product.dto.request.ProductCreateReqDto;
 import com.campusmarket.backend.domain.product.dto.request.ProductImageItemReqDto;
 import com.campusmarket.backend.domain.product.dto.request.ProductUpdateReqDto;
 import com.campusmarket.backend.domain.product.dto.request.SearchProductsReqDto;
-import com.campusmarket.backend.domain.product.dto.response.*;
+import com.campusmarket.backend.domain.product.dto.response.ProductCreateResDto;
+import com.campusmarket.backend.domain.product.dto.response.ProductDetailInfo;
+import com.campusmarket.backend.domain.product.dto.response.ProductDetailResDto;
+import com.campusmarket.backend.domain.product.dto.response.ProductImageResDto;
+import com.campusmarket.backend.domain.product.dto.response.ProductListItemInfo;
+import com.campusmarket.backend.domain.product.dto.response.ProductListResDto;
+import com.campusmarket.backend.domain.product.dto.response.ProductTempImageResDto;
+import com.campusmarket.backend.domain.product.dto.response.ProductViewIncreaseResDto;
 import com.campusmarket.backend.domain.product.entity.Product;
 import com.campusmarket.backend.domain.product.entity.ProductImage;
 import com.campusmarket.backend.domain.product.entity.ProductSaleStatus;
+import com.campusmarket.backend.domain.product.entity.ProductTempImage;
+import com.campusmarket.backend.domain.product.entity.ProductTempImageStatus;
 import com.campusmarket.backend.domain.product.exception.ProductErrorCode;
 import com.campusmarket.backend.domain.product.exception.ProductException;
 import com.campusmarket.backend.domain.product.mapper.ProductMapper;
 import com.campusmarket.backend.domain.product.repository.ProductImageRepository;
 import com.campusmarket.backend.domain.product.repository.ProductQueryRepository;
 import com.campusmarket.backend.domain.product.repository.ProductRepository;
+import com.campusmarket.backend.domain.product.repository.ProductTempImageRepository;
 import com.campusmarket.backend.domain.product.repository.WishRepository;
+import com.campusmarket.backend.global.file.FileStorageService;
+import com.campusmarket.backend.global.file.FileUploadResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -49,6 +62,9 @@ public class ProductService {
     private final MemberRepository memberRepository;
     private final MajorCategoryRepository majorCategoryRepository;
     private final SubCategoryRepository subCategoryRepository;
+    private final ProductTempImageRepository productTempImageRepository;
+    private final ProductDisplayAssetService productDisplayAssetService;
+    private final FileStorageService fileStorageService;
     private final ChatSystemMessageService chatSystemMessageService;
 
     public ProductListResDto searchProducts(SearchProductsReqDto reqDto) {
@@ -153,6 +169,13 @@ public class ProductService {
         SubCategory subCategory = subCategoryRepository.findById(reqDto.subCategoryId())
                 .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_SUB_CATEGORY_NOT_FOUND));
 
+        String displayAssetImageUrl = productDisplayAssetService.resolveDisplayAssetImage(
+                reqDto.majorCategoryId(),
+                reqDto.subCategoryId(),
+                reqDto.color(),
+                reqDto.name()
+        );
+
         validateCreateProductRequest(reqDto, majorCategory, subCategory);
 
         Product product = Product.builder()
@@ -169,6 +192,7 @@ public class ProductService {
                 .saleStatus(ProductSaleStatus.ON_SALE)
                 .viewCount(0)
                 .wishCount(0)
+                .displayAssetImageUrl(displayAssetImageUrl)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .soldAt(null)
@@ -286,6 +310,7 @@ public class ProductService {
                 product.getSaleStatus(),
                 product.getViewCount(),
                 product.getWishCount(),
+                product.getDisplayAssetImageUrl(),
                 product.getCreatedAt(),
                 null,
                 null,
@@ -324,5 +349,93 @@ public class ProductService {
         Product product = getActiveProduct(productId);
         validateOwner(product, seller);
         return product;
+    }
+
+    @Transactional
+    public ProductTempImageResDto uploadTempImage(
+            Long memberId,
+            MultipartFile file
+    ) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        FileUploadResult uploadResult = fileStorageService.upload(
+                file,
+                "products/temp/" + memberId
+        );
+
+        int nextDisplayOrder = (int) productTempImageRepository.countByMember_IdAndStatus(
+                memberId,
+                ProductTempImageStatus.ACTIVE
+        ) + 1;
+
+        ProductTempImage tempImage = ProductTempImage.builder()
+                .member(member)
+                .originalImageUrl(uploadResult.fileUrl())
+                .backgroundRemovedImageUrl(null)
+                .backgroundRemoved(false)
+                .displayOrder(nextDisplayOrder)
+                .status(ProductTempImageStatus.ACTIVE)
+                .build();
+
+        ProductTempImage saved = productTempImageRepository.save(tempImage);
+
+        return ProductTempImageResDto.of(
+                saved.getId(),
+                saved.getOriginalImageUrl(),
+                saved.getBackgroundRemovedImageUrl(),
+                saved.getBackgroundRemoved(),
+                saved.getDisplayOrder()
+        );
+    }
+
+    @Transactional
+    public ProductTempImageResDto replaceTempImage(
+            Long memberId,
+            Long tempImageId,
+            MultipartFile file
+    ) {
+        ProductTempImage tempImage = productTempImageRepository.findByIdAndMember_IdAndStatus(
+                        tempImageId,
+                        memberId,
+                        ProductTempImageStatus.ACTIVE
+                )
+                .orElseThrow(() -> new IllegalArgumentException("유효한 임시 이미지가 없습니다."));
+
+        fileStorageService.deleteByUrl(tempImage.getOriginalImageUrl());
+        fileStorageService.deleteByUrl(tempImage.getBackgroundRemovedImageUrl());
+
+        FileUploadResult uploadResult = fileStorageService.upload(
+                file,
+                "products/temp/" + memberId
+        );
+
+        tempImage.replaceOriginalImage(uploadResult.fileUrl());
+
+        return ProductTempImageResDto.of(
+                tempImage.getId(),
+                tempImage.getOriginalImageUrl(),
+                tempImage.getBackgroundRemovedImageUrl(),
+                tempImage.getBackgroundRemoved(),
+                tempImage.getDisplayOrder()
+        );
+    }
+
+    @Transactional
+    public void deleteTempImage(
+            Long memberId,
+            Long tempImageId
+    ) {
+        ProductTempImage tempImage = productTempImageRepository.findByIdAndMember_IdAndStatus(
+                        tempImageId,
+                        memberId,
+                        ProductTempImageStatus.ACTIVE
+                )
+                .orElseThrow(() -> new IllegalArgumentException("유효한 임시 이미지가 없습니다."));
+
+        fileStorageService.deleteByUrl(tempImage.getOriginalImageUrl());
+        fileStorageService.deleteByUrl(tempImage.getBackgroundRemovedImageUrl());
+
+        tempImage.softDelete();
     }
 }

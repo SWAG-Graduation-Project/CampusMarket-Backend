@@ -25,7 +25,8 @@ public record ProductDetailInfo(
         LocalDateTime createdAt,
         String sellerNickname,
         String sellerProfileImageUrl,
-        LocalDateTime sellerStoreStartedAt,
-        Integer sellerSaleCount
+        LocalDateTime storeStartDate,
+        Integer saleCount,
+        String displayAssetImageUrl
 ) {
 }
