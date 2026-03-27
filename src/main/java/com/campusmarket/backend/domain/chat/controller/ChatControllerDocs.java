@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "Chat", description = "채팅 API")
 public interface ChatControllerDocs {
@@ -60,6 +61,13 @@ public interface ChatControllerDocs {
     ApiResponse<Void> leaveChatRoom(
             @Parameter(hidden = true) @RequestHeader("guestUuid") String guestUuid,
             @PathVariable Long chatRoomId
+    );
+
+    @Operation(summary = "채팅 이미지 업로드", description = "채팅방 참여자만 업로드 가능. 업로드 즉시 IMAGE 메시지가 채팅방에 저장되고 WebSocket으로 브로드캐스트됨.")
+    ApiResponse<ChatMessageResDto> uploadChatImage(
+            @Parameter(hidden = true) @RequestHeader("guestUuid") String guestUuid,
+            @Parameter(description = "채팅방 ID", required = true) @PathVariable Long chatRoomId,
+            @Parameter(description = "이미지 파일", required = true) MultipartFile file
     );
 
     @Operation(summary = "채팅 상대 차단", description = "채팅방 기준으로 상대방을 차단. 이후 상대방의 채팅방 입장 불가.")
