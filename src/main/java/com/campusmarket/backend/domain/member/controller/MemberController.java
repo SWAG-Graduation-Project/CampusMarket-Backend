@@ -14,9 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-
 @RequestMapping("/members")
-public class MemberController implements MemberControllerDocs{
+public class MemberController implements MemberControllerDocs {
 
     private final MemberService memberService;
 
@@ -62,7 +61,7 @@ public class MemberController implements MemberControllerDocs{
     @GetMapping("/onboarding-status")
     public ApiResponse<OnboardingStatusResDto> getOnboardingStatus(
             @RequestHeader("guestUuid") String guestUuid
-    ){
+    ) {
         return ApiResponse.success(memberService.getOnboardingStatus(guestUuid));
     }
 
