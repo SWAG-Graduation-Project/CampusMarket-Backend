@@ -55,7 +55,11 @@ public class BlockService {
     }
 
     private Member getMemberByGuestUuid(String guestUuid) {
-        return memberRepository.findByGuestUuid(guestUuid)
+        Member member = memberRepository.findByGuestUuid(guestUuid)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+        if (member.isWithdrawn()) {
+            throw new MemberException(MemberErrorCode.MEMBER_WITHDRAWN);
+        }
+        return member;
     }
 }

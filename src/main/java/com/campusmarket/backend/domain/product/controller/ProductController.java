@@ -120,7 +120,7 @@ public class ProductController implements ProductControllerDocs {
         Member member = resolveMember(memberId, guestUuid);
 
         productService.deleteTempImage(member.getId(), tempImageId);
-        return ApiResponse.success();
+        return ApiResponse.success(null);
     }
 
     @Override
