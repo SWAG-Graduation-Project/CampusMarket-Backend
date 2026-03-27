@@ -1,7 +1,22 @@
 spring:
   profiles:
     active: local
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   servlet:
     context-path: /api
+
+app:
+  mail:
+    admin-email: ${MAIL_ADMIN_EMAIL}

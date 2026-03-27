@@ -1,18 +1,20 @@
 package com.campusmarket.backend.global.exception;
 
+import com.campusmarket.backend.domain.category.exception.CategoryException;
+import com.campusmarket.backend.domain.chat.exception.ChatException;
 import com.campusmarket.backend.domain.member.exception.MemberException;
 import com.campusmarket.backend.domain.product.exception.ProductException;
+import com.campusmarket.backend.domain.report.exception.ReportException;
 import com.campusmarket.backend.domain.store.exception.StoreException;
+import com.campusmarket.backend.domain.terms.exception.TermsException;
 import com.campusmarket.backend.global.ApiResponse;
-import com.campusmarket.backend.global.response.BaseResponse;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.bind.MissingRequestHeaderException;
-import com.campusmarket.backend.domain.wishlist.exception.WishlistException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -20,72 +22,84 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MemberException.class)
-    public ResponseEntity<BaseResponse<Void>> handleMemberException(MemberException exception) {
-        BaseErrorCode errorCode = exception.getErrorCode();
+    public ResponseEntity<ApiResponse<Void>> handleMemberException(MemberException e) {
+        BaseErrorCode errorCode = e.getErrorCode();
+        return ResponseEntity.status(errorCode.getStatus())
+                .body(ApiResponse.failure(errorCode.getCode(), errorCode.getMessage()));
+    }
 
-        return ResponseEntity
-                .status(errorCode.getStatus())
-                .body(BaseResponse.onFailure(errorCode.getCode(), errorCode.getMessage()));
+    @ExceptionHandler(ProductException.class)
+    public ResponseEntity<ApiResponse<Void>> handleProductException(ProductException e) {
+        BaseErrorCode errorCode = e.getErrorCode();
+        return ResponseEntity.status(errorCode.getStatus())
+                .body(ApiResponse.failure(errorCode.getCode(), errorCode.getMessage()));
+    }
+
+    @ExceptionHandler(StoreException.class)
+    public ResponseEntity<ApiResponse<Void>> handleStoreException(StoreException e) {
+        BaseErrorCode errorCode = e.getErrorCode();
+        return ResponseEntity.status(errorCode.getStatus())
+                .body(ApiResponse.failure(errorCode.getCode(), errorCode.getMessage()));
+    }
+
+    @ExceptionHandler(CategoryException.class)
+    public ResponseEntity<ApiResponse<Void>> handleCategoryException(CategoryException e) {
+        BaseErrorCode errorCode = e.getErrorCode();
+        return ResponseEntity.status(errorCode.getStatus())
+                .body(ApiResponse.failure(errorCode.getCode(), errorCode.getMessage()));
+    }
+
+    @ExceptionHandler(TermsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTermsException(TermsException e) {
+        BaseErrorCode errorCode = e.getErrorCode();
+        return ResponseEntity.status(errorCode.getStatus())
+                .body(ApiResponse.failure(errorCode.getCode(), errorCode.getMessage()));
+    }
+
+    @ExceptionHandler(ChatException.class)
+    public ResponseEntity<ApiResponse<Void>> handleChatException(ChatException e) {
+        BaseErrorCode errorCode = e.getErrorCode();
+        return ResponseEntity.status(errorCode.getStatus())
+                .body(ApiResponse.failure(errorCode.getCode(), errorCode.getMessage()));
+    }
+
+    @ExceptionHandler(ReportException.class)
+    public ResponseEntity<ApiResponse<Void>> handleReportException(ReportException e) {
+        BaseErrorCode errorCode = e.getErrorCode();
+        return ResponseEntity.status(errorCode.getStatus())
+                .body(ApiResponse.failure(errorCode.getCode(), errorCode.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<BaseResponse<Void>> handleValidationException(
-            MethodArgumentNotValidException exception
-    ) {
-        String message = exception.getBindingResult()
+    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .findFirst()
                 .map(error -> error.getDefaultMessage())
-                .orElse("잘못된 요청입니다.");
+                .orElse(GlobalErrorCode.BAD_REQUEST.getMessage());
 
-        return ResponseEntity
-                .badRequest()
-                .body(BaseResponse.onFailure("COMMON_400", message));
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<BaseResponse<Void>> handleException(Exception exception) {
-        log.error("Unhandled Exception occurred.", exception);
-
-        return ResponseEntity
-                .internalServerError()
-                .body(BaseResponse.onFailure("COMMON_500", "서버 내부 오류입니다."));
+        return ResponseEntity.status(GlobalErrorCode.BAD_REQUEST.getStatus())
+                .body(ApiResponse.failure(GlobalErrorCode.BAD_REQUEST.getCode(), message));
     }
 
     @ExceptionHandler(MissingRequestHeaderException.class)
-    public ResponseEntity<BaseResponse<Void>> handleMissingRequestHeaderException(
-            MissingRequestHeaderException exception
-    ) {
-        return ResponseEntity
-                .badRequest()
-                .body(BaseResponse.onFailure("COMMON_400", "필수 헤더가 누락되었습니다."));
+    public ResponseEntity<ApiResponse<Void>> handleMissingRequestHeaderException(MissingRequestHeaderException e) {
+        return ResponseEntity.status(GlobalErrorCode.MISSING_HEADER.getStatus())
+                .body(ApiResponse.failure(GlobalErrorCode.MISSING_HEADER.getCode(), GlobalErrorCode.MISSING_HEADER.getMessage()));
     }
 
-    @ExceptionHandler(ProductException.class)
-    public ResponseEntity<BaseResponse<Void>> handleProductException(ProductException exception) {
-        BaseErrorCode errorCode = exception.getErrorCode();
-
-        return ResponseEntity
-                .status(errorCode.getStatus())
-                .body(BaseResponse.onFailure(errorCode.getCode(), errorCode.getMessage()));
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+        log.error("Unhandled Exception occurred.", e);
+        return ResponseEntity.status(GlobalErrorCode.INTERNAL_SERVER_ERROR.getStatus())
+                .body(ApiResponse.failure(GlobalErrorCode.INTERNAL_SERVER_ERROR.getCode(), GlobalErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
     }
 
-    @ExceptionHandler(StoreException.class)
-    public ResponseEntity<BaseResponse<Void>> handleStoreException(StoreException exception) {
-        BaseErrorCode errorCode = exception.getErrorCode();
-
-        return ResponseEntity
-                .status(errorCode.getStatus())
-                .body(BaseResponse.onFailure(errorCode.getCode(), errorCode.getMessage()));
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<Void> handleNoResourceFoundException(
+        org.springframework.web.servlet.resource.NoResourceFoundException e) {
+        return ResponseEntity.notFound().build();
     }
 
-    @ExceptionHandler(WishlistException.class)
-    public ResponseEntity<BaseResponse<Void>> handleWishlistException(WishlistException exception) {
-        BaseErrorCode errorCode = exception.getErrorCode();
-
-        return ResponseEntity
-                .status(errorCode.getStatus())
-                .body(BaseResponse.onFailure(errorCode.getCode(), errorCode.getMessage()));
-    }
 }

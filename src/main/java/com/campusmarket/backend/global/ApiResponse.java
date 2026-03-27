@@ -1,28 +1,27 @@
 package com.campusmarket.backend.global;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 public class ApiResponse<T> {
 
-    private String code;     // 성공/실패 코드
-    private String message;  // 메시지
-    private T data;          // 실제 데이터
+    private final boolean isSuccess;
+    private final String code;
+    private final String message;
+    private final T result;
 
-    // 성공 응답 (data 포함)
-    public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>("SUCCESS", "요청 성공", data);
+    private ApiResponse(boolean isSuccess, String code, String message, T result) {
+        this.isSuccess = isSuccess;
+        this.code = code;
+        this.message = message;
+        this.result = result;
     }
 
-    // 성공 응답 (data 없음)
-    public static ApiResponse<Void> success() {
-        return new ApiResponse<>("SUCCESS", "요청 성공", null);
+    public static <T> ApiResponse<T> success(T result) {
+        return new ApiResponse<>(true, "COMMON_200", "성공입니다.", result);
     }
 
-    // 실패 응답
-    public static ApiResponse<Void> error(String code, String message) {
-        return new ApiResponse<>(code, message, null);
+    public static <T> ApiResponse<T> failure(String code, String message) {
+        return new ApiResponse<>(false, code, message, null);
     }
 }
