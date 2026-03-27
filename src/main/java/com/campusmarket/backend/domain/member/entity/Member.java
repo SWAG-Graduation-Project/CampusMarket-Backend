@@ -52,6 +52,9 @@ public class Member {
     @Column(name = "시간표URL", length = 500)
     private String timetableImageUrl;
 
+    @Column(name = "시간표데이터", columnDefinition = "TEXT")
+    private String timetableData;  // JSON: {"classes": [{"day":"월","start_time":"10:00","end_time":"12:00",...}]}
+
     @Column(name = "프로필완료여부", nullable = false)
     private Boolean profileCompleted;
 
@@ -81,6 +84,7 @@ public class Member {
                    String profileImageUrl,
                    String lockerName,
                    String timetableImageUrl,
+                   String timetableData,
                    Boolean profileCompleted,
                    Boolean termsCompleted,
                    Boolean onboardingSkipped
@@ -95,6 +99,7 @@ public class Member {
         this.profileImageUrl = profileImageUrl;
         this.lockerName = lockerName;
         this.timetableImageUrl = timetableImageUrl;
+        this.timetableData = timetableData;
         this.profileCompleted = profileCompleted;
         this.termsCompleted = termsCompleted;
         this.onboardingSkipped = onboardingSkipped;
@@ -131,12 +136,14 @@ public class Member {
             String nickname,
             String profileImageUrl,
             String lockerName,
-            String timetableImageUrl
+            String timetableImageUrl,
+            String timetableData
     ) {
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
         this.lockerName = lockerName;
         this.timetableImageUrl = timetableImageUrl;
+        this.timetableData = timetableData;
         this.profileCompleted = true;
     }
 
@@ -144,24 +151,14 @@ public class Member {
             String nickname,
             String profileImageUrl,
             String lockerName,
-            String timetableImageUrl
+            String timetableImageUrl,
+            String timetableData
     ) {
-        if (nickname != null) {
-            this.nickname = nickname;
-        }
-
-        if (profileImageUrl != null) {
-            this.profileImageUrl = profileImageUrl;
-        }
-
-        if (lockerName != null) {
-            this.lockerName = lockerName;
-        }
-
-        if (timetableImageUrl != null) {
-            this.timetableImageUrl = timetableImageUrl;
-        }
-
+        if (nickname != null) this.nickname = nickname;
+        if (profileImageUrl != null) this.profileImageUrl = profileImageUrl;
+        if (lockerName != null) this.lockerName = lockerName;
+        if (timetableImageUrl != null) this.timetableImageUrl = timetableImageUrl;
+        if (timetableData != null) this.timetableData = timetableData;
         this.profileCompleted = isProfileFilled();
     }
 

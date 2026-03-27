@@ -8,6 +8,7 @@ public record MemberProfileUpdateReqDto(
 
         String profileImageUrl,
         String lockerName,
-        String timetableImageUrl
+        String timetableImageUrl,
+        String timetableData  // JSON: {"classes": [...]}
 ) {
 }

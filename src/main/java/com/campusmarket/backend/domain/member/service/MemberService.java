@@ -144,7 +144,8 @@ public class MemberService {
                 nickname,
                 reqDto.profileImageUrl(),
                 reqDto.lockerName(),
-                reqDto.timetableImageUrl()
+                reqDto.timetableImageUrl(),
+                reqDto.timetableData()
         );
 
         return toMemberProfileResDto(member);
@@ -160,7 +161,8 @@ public class MemberService {
         if (reqDto.nickname() == null
                 && reqDto.profileImageUrl() == null
                 && reqDto.lockerName() == null
-                && reqDto.timetableImageUrl() == null) {
+                && reqDto.timetableImageUrl() == null
+                && reqDto.timetableData() == null) {
             throw new MemberException(MemberErrorCode.INVALID_PROFILE_UPDATE_REQUEST);
         }
 
@@ -174,7 +176,8 @@ public class MemberService {
                 nickname,
                 reqDto.profileImageUrl(),
                 reqDto.lockerName(),
-                reqDto.timetableImageUrl()
+                reqDto.timetableImageUrl(),
+                reqDto.timetableData()
         );
 
         return toMemberProfileResDto(member);
@@ -234,6 +237,7 @@ public class MemberService {
                 member.getProfileImageUrl(),
                 member.getLockerName(),
                 member.getTimetableImageUrl(),
+                member.getTimetableData(),
                 member.getProfileCompleted()
         );
     }

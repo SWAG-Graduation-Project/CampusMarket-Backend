@@ -1,4 +1,5 @@
 package com.campusmarket.backend.domain.member.controller;
+
 import com.campusmarket.backend.domain.member.dto.request.MemberProfileCreateReqDto;
 import com.campusmarket.backend.domain.member.dto.request.MemberProfileUpdateReqDto;
 import com.campusmarket.backend.domain.member.dto.response.MemberProfileResDto;
@@ -6,27 +7,21 @@ import com.campusmarket.backend.domain.member.dto.response.NicknameCheckResDto;
 import com.campusmarket.backend.domain.member.dto.response.OnboardingStatusResDto;
 import com.campusmarket.backend.domain.member.dto.response.RandomNicknameResDto;
 import com.campusmarket.backend.global.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestBody;
 
 @Tag(name = "Member", description = "회원 API")
 public interface MemberControllerDocs {
 
-    @Operation(
-            summary = "랜덤 닉네임 추천",
-            description = "가입 시 사용할 랜덤 닉네임을 추천합니다."
-    )
+    @Operation(summary = "랜덤 닉네임 추천", description = "가입 시 사용할 랜덤 닉네임을 추천합니다.")
     ApiResponse<RandomNicknameResDto> getRandomNickname();
 
-    @Operation(
-            summary = "닉네임 중복 확인",
-            description = "입력한 닉네임의 사용 가능 여부를 확인합니다."
-    )
+    @Operation(summary = "닉네임 중복 확인", description = "입력한 닉네임의 사용 가능 여부를 확인합니다.")
     ApiResponse<NicknameCheckResDto> checkNickname(
             @Parameter(description = "중복 확인할 닉네임", required = true)
             @RequestParam String nickname
