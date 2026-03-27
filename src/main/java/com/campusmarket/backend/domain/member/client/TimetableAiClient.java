@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.util.List;
 
 @Component
@@ -39,7 +40,7 @@ public class TimetableAiClient {
                 .bodyValue(builder.build())
                 .retrieve()
                 .bodyToMono(TimetableParseResponse.class)
-                .block();
+                .block(Duration.ofSeconds(30));
     }
 
     private void applyApiKey(HttpHeaders headers) {

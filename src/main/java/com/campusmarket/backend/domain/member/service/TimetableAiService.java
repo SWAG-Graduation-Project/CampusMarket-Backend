@@ -27,10 +27,11 @@ public class TimetableAiService {
     private final ObjectMapper objectMapper;
 
     // 시간표 이미지 → AI 파싱 → timetableData 저장 (이미지 저장 X)
-    @Transactional
+    // AI 호출은 트랜잭션 밖에서 수행, DB 저장만 짧은 쓰기 트랜잭션으로 처리
     public TimetableParseResDto parseTimetableImage(String guestUuid, MultipartFile file) {
         Member member = getMemberByGuestUuid(guestUuid);
 
+        String timetableData;
         try {
             byte[] imageBytes = file.getBytes();
             String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "timetable.jpg";
@@ -40,11 +41,7 @@ public class TimetableAiService {
                     timetableAiClient.parseTimetable(imageBytes, fileName, contentType);
 
             List<?> classes = aiResponse.classes() != null ? aiResponse.classes() : List.of();
-            String timetableData = objectMapper.writeValueAsString(Map.of("classes", classes));
-
-            member.updateTimetable(timetableData);
-
-            return TimetableParseResDto.of(timetableData);
+            timetableData = objectMapper.writeValueAsString(Map.of("classes", classes));
 
         } catch (MemberException e) {
             throw e;
@@ -52,6 +49,16 @@ public class TimetableAiService {
             log.warn("시간표 AI 파싱 실패 - memberId={}", member.getId(), e);
             throw new MemberException(MemberErrorCode.TIMETABLE_PARSE_FAILED);
         }
+
+        saveTimetable(member.getId(), timetableData);
+        return TimetableParseResDto.of(timetableData);
+    }
+
+    @Transactional
+    public void saveTimetable(Long memberId, String timetableData) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+        member.updateTimetable(timetableData);
     }
 
     private Member getMemberByGuestUuid(String guestUuid) {

@@ -1,5 +1,6 @@
 package com.campusmarket.backend.domain.chat.service;
 
+import com.campusmarket.backend.domain.chat.constant.ChatRoomStatus;
 import com.campusmarket.backend.domain.chat.constant.MessageType;
 import com.campusmarket.backend.domain.chat.dto.response.ChatMessageResDto;
 import com.campusmarket.backend.domain.chat.entity.ChatMessage;
@@ -30,9 +31,9 @@ public class ChatSystemMessageService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
 
-    // 회원 탈퇴 시 해당 회원이 참여한 모든 채팅방에 시스템 메시지 전송
+    // 회원 탈퇴 시 참여 중인 활성 채팅방에만 시스템 메시지 전송
     public void sendWithdrawnUserMessage(Long memberId) {
-        List<ChatRoom> chatRooms = chatRoomRepository.findAllByMemberId(memberId);
+        List<ChatRoom> chatRooms = chatRoomRepository.findAllByMemberId(memberId, ChatRoomStatus.DELETED);
         for (ChatRoom chatRoom : chatRooms) {
             ChatMessage message = save(chatRoom, null, MessageType.SYSTEM, "탈퇴한 사용자입니다. 더 이상 채팅할 수 없습니다.", null);
             chatRoom.updateLastMessage(message.getId(), message.getCreatedAt());
