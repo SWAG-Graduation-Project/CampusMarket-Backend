@@ -10,7 +10,8 @@ public class ProductAiWebClientConfig {
 
     @Bean
     public WebClient productAiWebClient(
-            @Value("https://watertrue-campusmarket-ai.hf.space") String aiBaseUrl
+            @Value("${ai.base-url}")
+            String aiBaseUrl
     ) {
         return WebClient.builder()
                 .baseUrl(aiBaseUrl)

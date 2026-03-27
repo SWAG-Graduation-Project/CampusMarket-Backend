@@ -65,6 +65,10 @@ public class S3FileStorageService implements FileStorageService {
     public FileUploadResult uploadBytes(byte[] bytes, String dirName, String fileName, String contentType) {
         String objectKey = dirName + "/" + UUID.randomUUID() + "_" + fileName;
 
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("업로드할 파일이 비어 있습니다.");
+        }
+
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(objectKey)
