@@ -2,18 +2,30 @@ package com.campusmarket.backend.domain.member.service;
 
 import com.campusmarket.backend.domain.member.constant.MemberErrorCode;
 import com.campusmarket.backend.domain.member.constant.RandomNicknameWordType;
+import com.campusmarket.backend.domain.member.dto.request.LockerUpdateReqDto;
 import com.campusmarket.backend.domain.member.dto.request.MemberProfileCreateReqDto;
 import com.campusmarket.backend.domain.member.dto.request.MemberProfileUpdateReqDto;
+import com.campusmarket.backend.domain.member.dto.request.TimetableClassUpdateReqDto;
+import com.campusmarket.backend.domain.member.dto.response.TimetableClassResDto;
+import com.campusmarket.backend.domain.member.dto.response.LockerResDto;
 import com.campusmarket.backend.domain.member.dto.response.MemberProfileResDto;
 import com.campusmarket.backend.domain.member.dto.response.NicknameCheckResDto;
 import com.campusmarket.backend.domain.member.dto.response.OnboardingStatusResDto;
 import com.campusmarket.backend.domain.member.dto.response.RandomNicknameResDto;
+import com.campusmarket.backend.domain.member.dto.response.TimetableParseResDto;
 import com.campusmarket.backend.domain.member.entity.Member;
 import com.campusmarket.backend.domain.member.entity.RandomNickname;
 import com.campusmarket.backend.domain.member.exception.MemberException;
 import com.campusmarket.backend.domain.member.repository.MemberProfileRepository;
 import com.campusmarket.backend.domain.member.repository.MemberRepository;
 import com.campusmarket.backend.domain.member.repository.RandomNicknameRepository;
+import com.campusmarket.backend.domain.chat.service.ChatSystemMessageService;
+import com.campusmarket.backend.global.file.FileStorageService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.time.LocalTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +44,9 @@ public class MemberService {
     private final MemberProfileRepository memberProfileRepository;
     private final RandomNicknameRepository randomNicknameRepository;
     private final MemberRepository memberRepository;
+    private final ObjectMapper objectMapper;
+    private final FileStorageService fileStorageService;
+    private final ChatSystemMessageService chatSystemMessageService;
 
     // 후보 생성 후 셔플하여 순회
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9]{2,12}$");
@@ -144,7 +159,6 @@ public class MemberService {
                 nickname,
                 reqDto.profileImageUrl(),
                 reqDto.lockerName(),
-                reqDto.timetableImageUrl(),
                 reqDto.timetableData()
         );
 
@@ -161,7 +175,6 @@ public class MemberService {
         if (reqDto.nickname() == null
                 && reqDto.profileImageUrl() == null
                 && reqDto.lockerName() == null
-                && reqDto.timetableImageUrl() == null
                 && reqDto.timetableData() == null) {
             throw new MemberException(MemberErrorCode.INVALID_PROFILE_UPDATE_REQUEST);
         }
@@ -172,11 +185,15 @@ public class MemberService {
             nickname = validateAvailableNickname(nickname, member.getId());
         }
 
+        // 새 프로필 이미지로 교체 시 기존 S3 이미지 삭제
+        if (reqDto.profileImageUrl() != null && !reqDto.profileImageUrl().equals(member.getProfileImageUrl())) {
+            fileStorageService.deleteByUrl(member.getProfileImageUrl());
+        }
+
         member.updateProfile(
                 nickname,
                 reqDto.profileImageUrl(),
                 reqDto.lockerName(),
-                reqDto.timetableImageUrl(),
                 reqDto.timetableData()
         );
 
@@ -192,7 +209,186 @@ public class MemberService {
     }
 
     /**
-     * guestUuid로 회원 찾기
+     * 사물함 위치 저장/수정
+     */
+    @Transactional
+    public LockerResDto updateLocker(String guestUuid, LockerUpdateReqDto reqDto) {
+        Member member = findMemberByGuestUuid(guestUuid);
+        String lockerName = reqDto.building() + " " + reqDto.floor() + " " + reqDto.major()
+                + " " + reqDto.lockerGroup() + "/" + reqDto.row() + "/" + reqDto.col();
+        member.updateLocker(lockerName, reqDto.building(), reqDto.floor(),
+                reqDto.major(), reqDto.lockerGroup(), reqDto.row(), reqDto.col());
+        return LockerResDto.from(member);
+    }
+
+    /**
+     * 사물함 조회
+     */
+    public LockerResDto getLocker(String guestUuid) {
+        Member member = findMemberByGuestUuid(guestUuid);
+        return LockerResDto.from(member);
+    }
+
+    /**
+     * 사물함 해제
+     */
+    @Transactional
+    public void deleteLocker(String guestUuid) {
+        Member member = findMemberByGuestUuid(guestUuid);
+        member.deleteLocker();
+    }
+
+    /**
+     * 시간표 조회
+     */
+    public TimetableParseResDto getTimetable(String guestUuid) {
+        Member member = findMemberByGuestUuid(guestUuid);
+        return TimetableParseResDto.of(member.getTimetableData());
+    }
+
+    /**
+     * 시간표 특정 수업 조회 (배열 인덱스 기반)
+     */
+    public TimetableClassResDto getTimetableClass(String guestUuid, int classIndex) {
+        Member member = findMemberByGuestUuid(guestUuid);
+
+        String timetableData = member.getTimetableData();
+        if (timetableData == null || timetableData.isBlank()) {
+            throw new MemberException(MemberErrorCode.TIMETABLE_NOT_FOUND);
+        }
+
+        try {
+            JsonNode root = objectMapper.readTree(timetableData);
+            ArrayNode classes = (ArrayNode) root.get("classes");
+
+            if (classes == null || classIndex < 0 || classIndex >= classes.size()) {
+                throw new MemberException(MemberErrorCode.TIMETABLE_CLASS_NOT_FOUND);
+            }
+
+            return objectMapper.treeToValue(classes.get(classIndex), TimetableClassResDto.class);
+
+        } catch (MemberException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new MemberException(MemberErrorCode.TIMETABLE_PARSE_FAILED);
+        }
+    }
+
+    /**
+     * 시간표 특정 수업 수정 (배열 인덱스 기반)
+     */
+    @Transactional
+    public TimetableParseResDto updateTimetableClass(String guestUuid, int classIndex, TimetableClassUpdateReqDto reqDto) {
+        Member member = findMemberByGuestUuid(guestUuid);
+
+        String timetableData = member.getTimetableData();
+        if (timetableData == null || timetableData.isBlank()) {
+            throw new MemberException(MemberErrorCode.TIMETABLE_NOT_FOUND);
+        }
+
+        try {
+            JsonNode root = objectMapper.readTree(timetableData);
+            ArrayNode classes = (ArrayNode) root.get("classes");
+
+            if (classes == null || classIndex < 0 || classIndex >= classes.size()) {
+                throw new MemberException(MemberErrorCode.TIMETABLE_CLASS_NOT_FOUND);
+            }
+
+            ObjectNode target = (ObjectNode) classes.get(classIndex);
+
+            // 수정 후 최종 상태 계산 (null이면 기존 값 유지)
+            String finalDay       = reqDto.day()       != null ? reqDto.day()       : target.path("day").asText(null);
+            String finalStartTime = reqDto.startTime() != null ? reqDto.startTime() : target.path("start_time").asText(null);
+            String finalEndTime   = reqDto.endTime()   != null ? reqDto.endTime()   : target.path("end_time").asText(null);
+
+            // 시간 겹침 검사
+            if (finalDay != null && finalStartTime != null && finalEndTime != null) {
+                LocalTime newStart = LocalTime.parse(finalStartTime);
+                LocalTime newEnd   = LocalTime.parse(finalEndTime);
+
+                for (int i = 0; i < classes.size(); i++) {
+                    if (i == classIndex) continue;
+                    JsonNode other = classes.get(i);
+                    if (!finalDay.equals(other.path("day").asText())) continue;
+
+                    String otherStart = other.path("start_time").asText(null);
+                    String otherEnd   = other.path("end_time").asText(null);
+                    if (otherStart == null || otherEnd == null) continue;
+
+                    if (newStart.isBefore(LocalTime.parse(otherEnd)) && newEnd.isAfter(LocalTime.parse(otherStart))) {
+                        throw new MemberException(MemberErrorCode.TIMETABLE_CLASS_TIME_CONFLICT);
+                    }
+                }
+            }
+
+            if (reqDto.name() != null)      target.put("name", reqDto.name());
+            if (reqDto.day() != null)       target.put("day", reqDto.day());
+            if (reqDto.startTime() != null) target.put("start_time", reqDto.startTime());
+            if (reqDto.endTime() != null)   target.put("end_time", reqDto.endTime());
+            if (reqDto.location() != null)  target.put("location", reqDto.location());
+
+            ObjectNode updated = objectMapper.createObjectNode();
+            updated.set("classes", classes);
+            String updatedData = objectMapper.writeValueAsString(updated);
+
+            member.updateTimetable(updatedData);
+            return TimetableParseResDto.of(updatedData);
+
+        } catch (MemberException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new MemberException(MemberErrorCode.TIMETABLE_PARSE_FAILED);
+        }
+    }
+
+    /**
+     * 시간표 특정 수업 삭제 (배열 인덱스 기반)
+     */
+    @Transactional
+    public TimetableParseResDto deleteTimetableClass(String guestUuid, int classIndex) {
+        Member member = findMemberByGuestUuid(guestUuid);
+
+        String timetableData = member.getTimetableData();
+        if (timetableData == null || timetableData.isBlank()) {
+            throw new MemberException(MemberErrorCode.TIMETABLE_NOT_FOUND);
+        }
+
+        try {
+            JsonNode root = objectMapper.readTree(timetableData);
+            ArrayNode classes = (ArrayNode) root.get("classes");
+
+            if (classes == null || classIndex < 0 || classIndex >= classes.size()) {
+                throw new MemberException(MemberErrorCode.TIMETABLE_CLASS_NOT_FOUND);
+            }
+
+            classes.remove(classIndex);
+
+            ObjectNode updated = objectMapper.createObjectNode();
+            updated.set("classes", classes);
+            String updatedData = objectMapper.writeValueAsString(updated);
+
+            member.updateTimetable(updatedData);
+            return TimetableParseResDto.of(updatedData);
+
+        } catch (MemberException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new MemberException(MemberErrorCode.TIMETABLE_PARSE_FAILED);
+        }
+    }
+
+    /**
+     * 회원 탈퇴 - 상태를 WITHDRAWN으로 변경 (데이터 삭제 없음)
+     */
+    @Transactional
+    public void withdraw(String guestUuid) {
+        Member member = findMemberByGuestUuid(guestUuid);
+        chatSystemMessageService.sendWithdrawnUserMessage(member.getId());
+        member.withdraw();
+    }
+
+    /**
+     * guestUuid로 회원 찾기 (탈퇴 회원 차단)
      */
     private Member findMemberByGuestUuid(String guestUuid) {
         if (guestUuid == null || guestUuid.isBlank()) {
@@ -205,8 +401,12 @@ public class MemberService {
             throw new MemberException(MemberErrorCode.INVALID_GUEST_UUID_FORMAT);
         }
 
-        return memberRepository.findByGuestUuid(guestUuid)
+        Member member = memberRepository.findByGuestUuid(guestUuid)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+        if (member.isWithdrawn()) {
+            throw new MemberException(MemberErrorCode.MEMBER_WITHDRAWN);
+        }
+        return member;
     }
 
     /**
@@ -236,7 +436,6 @@ public class MemberService {
                 member.getNickname(),
                 member.getProfileImageUrl(),
                 member.getLockerName(),
-                member.getTimetableImageUrl(),
                 member.getTimetableData(),
                 member.getProfileCompleted()
         );
