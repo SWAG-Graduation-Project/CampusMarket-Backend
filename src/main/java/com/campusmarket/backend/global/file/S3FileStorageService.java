@@ -31,6 +31,7 @@ public class S3FileStorageService implements FileStorageService {
     @Override
     public FileUploadResult upload(MultipartFile file, String dirName) {
         validateFile(file);
+        validateDirName(dirName);
 
         String originalFileName = file.getOriginalFilename();
         String extension = extractExtension(originalFileName);
@@ -63,11 +64,12 @@ public class S3FileStorageService implements FileStorageService {
 
     @Override
     public FileUploadResult uploadBytes(byte[] bytes, String dirName, String fileName, String contentType) {
-        String objectKey = dirName + "/" + UUID.randomUUID() + "_" + fileName;
+        validateBytes(bytes);
+        validateDirName(dirName);
+        validateFileName(fileName);
+        validateContentType(contentType);
 
-        if (bytes == null || bytes.length == 0) {
-            throw new IllegalArgumentException("업로드할 파일이 비어 있습니다.");
-        }
+        String objectKey = dirName + "/" + UUID.randomUUID() + "_" + fileName;
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)
@@ -124,6 +126,30 @@ public class S3FileStorageService implements FileStorageService {
         }
     }
 
+    private void validateBytes(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("업로드할 파일이 비어 있습니다.");
+        }
+    }
+
+    private void validateDirName(String dirName) {
+        if (dirName == null || dirName.isBlank()) {
+            throw new IllegalArgumentException("업로드 경로가 비어 있습니다.");
+        }
+    }
+
+    private void validateFileName(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            throw new IllegalArgumentException("파일명이 비어 있습니다.");
+        }
+    }
+
+    private void validateContentType(String contentType) {
+        if (contentType == null || contentType.isBlank()) {
+            throw new IllegalArgumentException("contentType이 비어 있습니다.");
+        }
+    }
+
     private String extractExtension(String originalFileName) {
         if (originalFileName == null || !originalFileName.contains(".")) {
             return "";
@@ -132,12 +158,34 @@ public class S3FileStorageService implements FileStorageService {
     }
 
     private String buildFileUrl(String objectKey) {
-        return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + objectKey;
+        return "https://" + getBucketHost() + "/" + objectKey;
+    }
+
+    private String getBucketHost() {
+        return bucket + ".s3." + region + ".amazonaws.com";
     }
 
     private String extractObjectKeyFromUrl(String fileUrl) {
+        if (fileUrl == null || fileUrl.isBlank()) {
+            throw new IllegalArgumentException("파일 URL이 비어 있습니다.");
+        }
+
         URI uri = URI.create(fileUrl);
+        String host = uri.getHost();
+
+        if (host == null || host.isBlank()) {
+            throw new IllegalArgumentException("유효하지 않은 파일 URL입니다.");
+        }
+
+        if (!host.equals(getBucketHost())) {
+            throw new IllegalArgumentException("허용되지 않은 S3 URL입니다.");
+        }
+
         String path = uri.getPath();
+
+        if (path == null || path.isBlank() || path.equals("/")) {
+            throw new IllegalArgumentException("S3 객체 키를 추출할 수 없습니다.");
+        }
 
         if (path.startsWith("/")) {
             return path.substring(1);
