@@ -12,15 +12,13 @@ import com.campusmarket.backend.domain.product.dto.response.ProductDraftResDto;
 import com.campusmarket.backend.domain.product.entity.ProductTempImage;
 import com.campusmarket.backend.domain.product.entity.ProductTempImageStatus;
 import com.campusmarket.backend.domain.product.repository.ProductTempImageRepository;
+import com.campusmarket.backend.global.file.FileStorageService;
+import com.campusmarket.backend.global.file.FileUploadResult;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -34,9 +32,7 @@ public class ProductAiService {
     private final MajorCategoryRepository majorCategoryRepository;
     private final SubCategoryRepository subCategoryRepository;
     private final ProductAiClient productAiClient;
-
-    @Value("${file.upload-dir}")
-    private String uploadDir;
+    private final FileStorageService fileStorageService;
 
     @Transactional
     public ProductDraftResDto generateDraft(
@@ -145,7 +141,7 @@ public class ProductAiService {
                 ProductTempImage tempImage = tempImages.get(index);
                 String base64Image = aiResponse.images().get(index);
 
-                String savedUrl = saveBase64Webp(base64Image);
+                String savedUrl = saveBase64Webp(base64Image, memberId);
                 tempImage.updateBackgroundRemovedImage(savedUrl);
 
                 items.add(
@@ -191,13 +187,17 @@ public class ProductAiService {
 
     private ProductAiClient.ImagePayload toImagePayload(ProductTempImage tempImage) {
         try {
-            Path path = toAbsolutePath(tempImage.getOriginalImageUrl());
-            byte[] bytes = Files.readAllBytes(path);
+            String imageUrl = resolveImageUrlForDraft(tempImage);
+            byte[] bytes = fileStorageService.download(imageUrl);
 
-            String fileName = path.getFileName().toString();
-            String contentType = Files.probeContentType(path);
+            String fileName = extractFileName(imageUrl);
+            String contentType = "image/jpeg";
 
-            if (!StringUtils.hasText(contentType)) {
+            if (fileName.endsWith(".png")) {
+                contentType = "image/png";
+            } else if (fileName.endsWith(".webp")) {
+                contentType = "image/webp";
+            } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
                 contentType = "image/jpeg";
             }
 
@@ -207,26 +207,41 @@ public class ProductAiService {
         }
     }
 
-    private Path toAbsolutePath(String imageUrl) {
-        String relativePath = imageUrl.replace("/uploads/", "");
-        return Paths.get(uploadDir, relativePath);
+    private String resolveImageUrlForDraft(ProductTempImage tempImage) {
+        if (tempImage.getBackgroundRemoved() != null
+                && tempImage.getBackgroundRemoved()
+                && StringUtils.hasText(tempImage.getBackgroundRemovedImageUrl())) {
+            return tempImage.getBackgroundRemovedImageUrl();
+        }
+
+        return tempImage.getOriginalImageUrl();
     }
 
-    private String saveBase64Webp(String base64Image) {
+    private String saveBase64Webp(String base64Image, Long memberId) {
         try {
             byte[] decodedBytes = Base64.getDecoder().decode(base64Image);
 
             String fileName = System.currentTimeMillis() + "_bg_removed.webp";
-            Path directoryPath = Paths.get(uploadDir, "background-removed");
-            Files.createDirectories(directoryPath);
 
-            Path filePath = directoryPath.resolve(fileName);
-            Files.write(filePath, decodedBytes);
+            FileUploadResult uploadResult = fileStorageService.uploadBytes(
+                    decodedBytes,
+                    "products/background-removed/" + memberId,
+                    fileName,
+                    "image/webp"
+            );
 
-            return "/uploads/background-removed/" + fileName;
+            return uploadResult.fileUrl();
         } catch (Exception exception) {
             throw new RuntimeException("배경 제거 이미지 저장 중 오류가 발생했습니다.", exception);
         }
+    }
+
+    private String extractFileName(String imageUrl) {
+        int lastSlashIndex = imageUrl.lastIndexOf("/");
+        if (lastSlashIndex == -1) {
+            return imageUrl;
+        }
+        return imageUrl.substring(lastSlashIndex + 1);
     }
 
     private String normalizeMajorCategory(String aiMajor) {
