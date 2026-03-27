@@ -30,6 +30,16 @@ public class ChatSystemMessageService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
 
+    // 회원 탈퇴 시 해당 회원이 참여한 모든 채팅방에 시스템 메시지 전송
+    public void sendWithdrawnUserMessage(Long memberId) {
+        List<ChatRoom> chatRooms = chatRoomRepository.findAllByMemberId(memberId);
+        for (ChatRoom chatRoom : chatRooms) {
+            ChatMessage message = save(chatRoom, null, MessageType.SYSTEM, "탈퇴한 사용자입니다. 더 이상 채팅할 수 없습니다.", null);
+            chatRoom.updateLastMessage(message.getId(), message.getCreatedAt());
+            broadcast(chatRoom.getId(), ChatMessageResDto.of(message, null));
+        }
+    }
+
     // 판매 완료 시 해당 상품의 모든 채팅방에 시스템 메시지 전송
     public void sendProductSoldMessage(Long productId) {
         List<ChatRoom> chatRooms = chatRoomRepository.findAllByProductId(productId);

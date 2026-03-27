@@ -25,7 +25,8 @@ public enum ChatErrorCode implements BaseErrorCode {
     ALREADY_BLOCKED("CHAT_008", "이미 차단한 상대입니다.", HttpStatus.BAD_REQUEST),
     BLOCKED_USER("CHAT_009", "차단된 사용자와는 채팅할 수 없습니다.", HttpStatus.FORBIDDEN),
     BLOCK_NOT_FOUND("CHAT_010", "차단 내역을 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
-    CANNOT_BLOCK_SELF("CHAT_011", "자기 자신을 차단할 수 없습니다.", HttpStatus.BAD_REQUEST);
+    CANNOT_BLOCK_SELF("CHAT_011", "자기 자신을 차단할 수 없습니다.", HttpStatus.BAD_REQUEST),
+    CHAT_WITHDRAWN_USER("CHAT_013", "탈퇴한 사용자와는 채팅할 수 없습니다.", HttpStatus.FORBIDDEN);
 
     private final String code;
     private final String message;
