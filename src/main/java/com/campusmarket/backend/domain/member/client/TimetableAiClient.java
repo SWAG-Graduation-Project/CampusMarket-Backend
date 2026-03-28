@@ -1,6 +1,7 @@
 package com.campusmarket.backend.domain.member.client;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.time.Duration;
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TimetableAiClient {
@@ -33,14 +35,20 @@ public class TimetableAiClient {
                 })
                 .contentType(MediaType.parseMediaType(contentType));
 
-        return productAiWebClient.post()
-                .uri("/api/v1/timetable/parse-timetable")
-                .headers(this::applyApiKey)
-                .accept(MediaType.APPLICATION_JSON)
-                .bodyValue(builder.build())
-                .retrieve()
-                .bodyToMono(TimetableParseResponse.class)
-                .block(Duration.ofSeconds(30));
+        try {
+            return productAiWebClient.post()
+                    .uri("/api/v1/timetable/parse-timetable")
+                    .headers(this::applyApiKey)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .bodyValue(builder.build())
+                    .retrieve()
+                    .bodyToMono(TimetableParseResponse.class)
+                    .block(Duration.ofSeconds(120));
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            log.error("AI 서버 오류 - status={}, body={}, apiKeySet={}", e.getStatusCode(), e.getResponseBodyAsString(), StringUtils.hasText(apiSecretKey));
+            throw e;
+        }
     }
 
     private void applyApiKey(HttpHeaders headers) {
