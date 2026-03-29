@@ -34,6 +34,7 @@ jobs:
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_ADMIN_EMAIL: ${{ secrets.MAIL_ADMIN_EMAIL }}
           AI_API_SECRET_KEY: ${{ secrets.AI_API_SECRET_KEY }}
 
       - name: Copy jar to EC2
@@ -68,6 +69,7 @@ jobs:
               -DS3_BUCKET='${{ secrets.S3_BUCKET }}' \
               -DMAIL_USERNAME='${{ secrets.MAIL_USERNAME }}' \
               -DMAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}' \
+              -DMAIL_ADMIN_EMAIL='${{ secrets.MAIL_ADMIN_EMAIL }}' \
               -DAI_API_SECRET_KEY='${{ secrets.AI_API_SECRET_KEY }}' \
               -jar "$JAR_PATH" \
               > /home/ubuntu/app/app.log 2>&1 &
