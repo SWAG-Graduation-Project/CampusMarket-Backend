@@ -34,7 +34,6 @@ jobs:
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-          MAIL_ADMIN_EMAIL: ${{ secrets.MAIL_ADMIN_EMAIL }}
           AI_API_SECRET_KEY: ${{ secrets.AI_API_SECRET_KEY }}
 
       - name: Copy jar to EC2
@@ -59,14 +58,16 @@ jobs:
 
             JAR_PATH=$(find /home/ubuntu/app -name "*.jar" | head -n 1)
 
-            nohup java \
-              -Dspring.profiles.active=prod \
-              -DDB_URL=${{ secrets.DB_URL }} \
-              -DDB_USERNAME=${{ secrets.DB_USERNAME }} \
-              -DDB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-              -DAWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }} \
-              -DAWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }} \
-              -DAWS_REGION=${{ secrets.AWS_REGION }} \
-              -DS3_BUCKET=${{ secrets.S3_BUCKET }} \
+            nohup java -Dspring.profiles.active=prod \
+              -DDB_URL='${{ secrets.DB_URL }}' \
+              -DDB_USERNAME='${{ secrets.DB_USERNAME }}' \
+              -DDB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+              -DAWS_ACCESS_KEY='${{ secrets.AWS_ACCESS_KEY }}' \
+              -DAWS_SECRET_KEY='${{ secrets.AWS_SECRET_KEY }}' \
+              -DAWS_REGION='${{ secrets.AWS_REGION }}' \
+              -DS3_BUCKET='${{ secrets.S3_BUCKET }}' \
+              -DMAIL_USERNAME='${{ secrets.MAIL_USERNAME }}' \
+              -DMAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}' \
+              -DAI_API_SECRET_KEY='${{ secrets.AI_API_SECRET_KEY }}' \
               -jar "$JAR_PATH" \
               > /home/ubuntu/app/app.log 2>&1 &
