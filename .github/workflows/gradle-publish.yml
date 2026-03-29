@@ -1,8 +1,5 @@
 name: Deploy to AWS EC2
 
-# 배포 조건
-# 1) backend/develop -> develop MERGE
-# 2) Labeling
 on:
   push:
     branches:
@@ -10,7 +7,6 @@ on:
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
@@ -27,7 +23,6 @@ jobs:
         run: chmod +x ./gradlew
         working-directory: ./backend
 
-      # backend 폴더로 이동해 Spring Boot 애플리케이션을 빌드
       - name: Build Spring Boot project
         run: ./gradlew clean bootJar -x test
         working-directory: ./backend
