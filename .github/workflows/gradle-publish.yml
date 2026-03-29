@@ -21,11 +21,9 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
-        working-directory: ./backend
 
       - name: Build Spring Boot project
         run: ./gradlew clean bootJar -x test
-        working-directory: ./backend
         env:
           DB_URL: ${{ secrets.DB_URL }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
@@ -34,6 +32,10 @@ jobs:
           AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_ADMIN_EMAIL: ${{ secrets.MAIL_ADMIN_EMAIL }}
+          AI_API_SECRET_KEY: ${{ secrets.AI_API_SECRET_KEY }}
 
       - name: Copy jar to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -41,7 +43,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "./backend/build/libs/*.jar"
+          source: "./build/libs/*.jar"
           target: "/home/ubuntu/app"
 
       - name: Deploy application on EC2
