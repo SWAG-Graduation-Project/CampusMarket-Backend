@@ -1,6 +1,13 @@
 spring:
   profiles:
-    active: local
+    #active: local
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
   mail:
     host: smtp.gmail.com
     port: 587
@@ -28,3 +35,13 @@ ai:
   base-url: https://watertrue-campusmarket.hf.space
   api:
     secret-key: ${AI_API_SECRET_KEY}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+    region:
+      static: ${AWS_REGION}
+    s3:
+      bucket: ${S3_BUCKET}
