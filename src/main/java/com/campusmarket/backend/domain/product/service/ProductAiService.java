@@ -39,45 +39,73 @@ public class ProductAiService {
             Long memberId,
             List<Long> tempImageIds
     ) {
-        List<ProductTempImage> tempImages = getActiveTempImages(memberId, tempImageIds);
+        try {
+            System.out.println("=== [DRAFT] 1. generateDraft start ===");
+            System.out.println("memberId = " + memberId);
+            System.out.println("tempImageIds = " + tempImageIds);
 
-        List<ProductAiClient.ImagePayload> imagePayloads = tempImages.stream()
-                .limit(1)
-                .map(this::toImagePayload)
-                .toList();
+            List<ProductTempImage> tempImages = getActiveTempImages(memberId, tempImageIds);
+            System.out.println("=== [DRAFT] 2. tempImages loaded ===");
+            System.out.println("tempImages size = " + tempImages.size());
 
-        ProductAiClient.ProductAiAnalyzeResponse aiResponse =
-                productAiClient.analyzeProduct(imagePayloads);
+            List<ProductAiClient.ImagePayload> imagePayloads = tempImages.stream()
+                    .limit(1)
+                    .map(this::toImagePayload)
+                    .toList();
+            System.out.println("=== [DRAFT] 3. imagePayloads created ===");
+            System.out.println("imagePayloads size = " + imagePayloads.size());
 
-        String normalizedMajor = normalizeMajorCategory(aiResponse.major());
-        String normalizedSubCategory = normalizeSubCategory(
-                aiResponse.sub_category(),
-                normalizedMajor
-        );
+            ProductAiClient.ProductAiAnalyzeResponse aiResponse =
+                    productAiClient.analyzeProduct(imagePayloads);
+            System.out.println("=== [DRAFT] 4. AI response received ===");
+            System.out.println("ai major = " + aiResponse.major());
+            System.out.println("ai sub_category = " + aiResponse.sub_category());
+            System.out.println("ai product_name = " + aiResponse.product_name());
+            System.out.println("ai color = " + aiResponse.color());
+            System.out.println("ai condition = " + aiResponse.condition());
 
-        MajorCategory majorCategory = majorCategoryRepository.findByName(normalizedMajor)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "AI가 반환한 대카테고리를 찾을 수 없습니다. major=" + aiResponse.major()
-                ));
+            String normalizedMajor = normalizeMajorCategory(aiResponse.major());
+            String normalizedSubCategory = normalizeSubCategory(
+                    aiResponse.sub_category(),
+                    normalizedMajor
+            );
 
-        SubCategory subCategory = subCategoryRepository.findByNameAndMajorCategory_Id(
-                        normalizedSubCategory,
-                        majorCategory.getId()
-                )
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "AI가 반환한 소카테고리를 찾을 수 없습니다. subCategory=" + aiResponse.sub_category()
-                ));
+            System.out.println("=== [DRAFT] 5. category normalized ===");
+            System.out.println("normalizedMajor = " + normalizedMajor);
+            System.out.println("normalizedSubCategory = " + normalizedSubCategory);
 
-        return ProductDraftResDto.of(
-                majorCategory.getId(),
-                majorCategory.getName(),
-                subCategory.getId(),
-                subCategory.getName(),
-                aiResponse.product_name(),
-                aiResponse.color(),
-                mapCondition(aiResponse.condition()),
-                aiResponse.description()
-        );
+            MajorCategory majorCategory = majorCategoryRepository.findByName(normalizedMajor)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "AI가 반환한 대카테고리를 찾을 수 없습니다. major=" + aiResponse.major()
+                                    + ", normalizedMajor=" + normalizedMajor
+                    ));
+
+            SubCategory subCategory = subCategoryRepository.findByNameAndMajorCategory_Id(
+                            normalizedSubCategory,
+                            majorCategory.getId()
+                    )
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "AI가 반환한 소카테고리를 찾을 수 없습니다. subCategory=" + aiResponse.sub_category()
+                                    + ", normalizedSubCategory=" + normalizedSubCategory
+                    ));
+
+            System.out.println("=== [DRAFT] 6. category lookup success ===");
+
+            return ProductDraftResDto.of(
+                    majorCategory.getId(),
+                    majorCategory.getName(),
+                    subCategory.getId(),
+                    subCategory.getName(),
+                    aiResponse.product_name(),
+                    aiResponse.color(),
+                    mapCondition(aiResponse.condition()),
+                    aiResponse.description()
+            );
+        } catch (Exception e) {
+            System.out.println("=== [DRAFT] exception occurred ===");
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @Transactional
@@ -188,7 +216,11 @@ public class ProductAiService {
     private ProductAiClient.ImagePayload toImagePayload(ProductTempImage tempImage) {
         try {
             String imageUrl = resolveImageUrlForDraft(tempImage);
+            System.out.println("=== [DRAFT] toImagePayload ===");
+            System.out.println("selected imageUrl = " + imageUrl);
+
             byte[] bytes = fileStorageService.download(imageUrl);
+            System.out.println("download bytes length = " + bytes.length);
 
             String fileName = extractFileName(imageUrl);
             String contentType = "image/jpeg";
@@ -201,8 +233,12 @@ public class ProductAiService {
                 contentType = "image/jpeg";
             }
 
+            System.out.println("fileName = " + fileName);
+            System.out.println("contentType = " + contentType);
+
             return new ProductAiClient.ImagePayload(bytes, fileName, contentType);
         } catch (Exception exception) {
+            exception.printStackTrace();
             throw new RuntimeException("임시 이미지 파일을 읽는 중 오류가 발생했습니다.", exception);
         }
     }

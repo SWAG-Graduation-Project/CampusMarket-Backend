@@ -177,7 +177,8 @@ public class S3FileStorageService implements FileStorageService {
             throw new IllegalArgumentException("유효하지 않은 파일 URL입니다.");
         }
 
-        if (!host.equals(getBucketHost())) {
+        String expectedBucket = bucket + ".s3.";
+        if (!host.startsWith(expectedBucket) || !host.endsWith(".amazonaws.com")) {
             throw new IllegalArgumentException("허용되지 않은 S3 URL입니다.");
         }
 
