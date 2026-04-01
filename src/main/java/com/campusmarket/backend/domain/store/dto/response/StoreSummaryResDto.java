@@ -4,6 +4,7 @@ public record StoreSummaryResDto(
         Long sellerId,
         String nickname,
         String profileImageUrl,
+        Long latestProductId,
         String latestProductImageUrl,
         Integer saleCount,
         Integer purchaseCount
@@ -12,6 +13,7 @@ public record StoreSummaryResDto(
             Long sellerId,
             String nickname,
             String profileImageUrl,
+            Long latestProductId,
             String latestProductImageUrl,
             Integer saleCount,
             Integer purchaseCount
@@ -20,6 +22,7 @@ public record StoreSummaryResDto(
                 sellerId,
                 nickname,
                 profileImageUrl,
+                latestProductId,
                 latestProductImageUrl,
                 saleCount,
                 purchaseCount

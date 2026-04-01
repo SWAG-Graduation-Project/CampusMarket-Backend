@@ -44,19 +44,21 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
                 .map(profile -> profile.getMember().getId())
                 .toList();
 
-        Map<Long, String> representativeImageMap =
+        Map<Long, SellerProductInfo> representativeInfoMap =
                 findRepresentativeImageMapBySellerIds(sellerIds);
 
         List<StoreSummaryResDto> result = new ArrayList<>();
 
         for (MemberProfile profile : profiles) {
             Long sellerId = profile.getMember().getId();
+            SellerProductInfo info = representativeInfoMap.get(sellerId);
 
             result.add(StoreSummaryResDto.of(
                     sellerId,
                     profile.getNickname(),
                     profile.getProfileImageUrl(),
-                    representativeImageMap.get(sellerId),
+                    info != null ? info.productId() : null,
+                    info != null ? info.imageUrl() : null,
                     profile.getSaleCount(),
                     profile.getPurchaseCount()
             ));
@@ -184,31 +186,34 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
         return query.getSingleResult();
     }
 
-    private Map<Long, String> findRepresentativeImageMapBySellerIds(List<Long> sellerIds) {
+    private record SellerProductInfo(Long productId, String imageUrl) {}
+
+    private Map<Long, SellerProductInfo> findRepresentativeImageMapBySellerIds(List<Long> sellerIds) {
         List<Object[]> rows = entityManager.createQuery(
                         """
-                        select p.sellerId, pi.imageUrl, p.createdAt, p.id, pi.displayOrder
+                        select p.sellerId, p.id, pi.imageUrl, pi.displayOrder
                         from ProductImage pi
                         join pi.product p
                         where p.sellerId in :sellerIds
                           and p.deletedAt is null
-                        order by p.sellerId asc, p.createdAt desc, p.id desc, pi.displayOrder asc
+                        order by p.sellerId asc, p.id desc, pi.displayOrder asc
                         """,
                         Object[].class
                 )
                 .setParameter("sellerIds", sellerIds)
                 .getResultList();
 
-        Map<Long, String> imageMap = new HashMap<>();
+        Map<Long, SellerProductInfo> infoMap = new HashMap<>();
 
         for (Object[] row : rows) {
             Long sellerId = (Long) row[0];
-            String imageUrl = (String) row[1];
+            Long productId = (Long) row[1];
+            String imageUrl = (String) row[2];
 
-            imageMap.putIfAbsent(sellerId, imageUrl);
+            infoMap.putIfAbsent(sellerId, new SellerProductInfo(productId, imageUrl));
         }
 
-        return imageMap;
+        return infoMap;
     }
 
     private String findThumbnailImageUrl(Long productId) {
