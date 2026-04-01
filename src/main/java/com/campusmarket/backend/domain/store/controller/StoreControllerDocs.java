@@ -4,6 +4,7 @@ import com.campusmarket.backend.domain.store.dto.response.MyStoreMainResDto;
 import com.campusmarket.backend.domain.store.dto.response.MyStoreProductListResDto;
 import com.campusmarket.backend.domain.store.dto.response.StoreDetailResDto;
 import com.campusmarket.backend.domain.store.dto.response.StoreListResDto;
+import com.campusmarket.backend.domain.store.dto.response.StoreProductListResDto;
 import com.campusmarket.backend.global.ApiResponse;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +17,12 @@ public interface StoreControllerDocs {
     );
 
     ApiResponse<StoreDetailResDto> getStoreDetail(Long sellerId);
+
+    ApiResponse<StoreProductListResDto> getStoreProducts(
+            Long sellerId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size
+    );
 
     ApiResponse<MyStoreMainResDto> getMyStore(
             @RequestHeader("X-Guest-UUID") String guestUuid

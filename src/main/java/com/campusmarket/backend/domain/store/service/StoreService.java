@@ -8,13 +8,7 @@ import com.campusmarket.backend.domain.member.repository.MemberProfileRepository
 import com.campusmarket.backend.domain.member.repository.MemberRepository;
 import com.campusmarket.backend.domain.product.entity.ProductSaleStatus;
 import com.campusmarket.backend.domain.store.constant.StoreErrorCode;
-import com.campusmarket.backend.domain.store.dto.response.MyStoreLatestProductResDto;
-import com.campusmarket.backend.domain.store.dto.response.MyStoreMainResDto;
-import com.campusmarket.backend.domain.store.dto.response.MyStoreProductListResDto;
-import com.campusmarket.backend.domain.store.dto.response.MyStoreProductSummaryResDto;
-import com.campusmarket.backend.domain.store.dto.response.StoreDetailResDto;
-import com.campusmarket.backend.domain.store.dto.response.StoreListResDto;
-import com.campusmarket.backend.domain.store.dto.response.StoreSummaryResDto;
+import com.campusmarket.backend.domain.store.dto.response.*;
 import com.campusmarket.backend.domain.store.exception.StoreException;
 import com.campusmarket.backend.domain.store.mapper.StoreMapper;
 import com.campusmarket.backend.domain.store.repository.StoreQueryRepository;
@@ -138,5 +132,34 @@ public class StoreService {
         } catch (IllegalArgumentException e) {
             throw new StoreException(StoreErrorCode.INVALID_SALE_STATUS);
         }
+    }
+
+    public StoreProductListResDto getStoreProducts(
+            Long sellerId,
+            Integer page,
+            Integer size
+    ) {
+        validatePage(page, size);
+
+        Member member = memberRepository.findById(sellerId)
+                .orElseThrow(() ->
+                        new StoreException(StoreErrorCode.STORE_OWNER_NOT_FOUND)
+                );
+
+        long offsetLong = (long) page * size;
+        int offset = Math.toIntExact(offsetLong);
+
+        List<StoreProductSummaryResDto> products =
+                storeQueryRepository.findStoreProductsBySellerId(
+                        member.getId(),
+                        offset,
+                        size
+                );
+
+        long totalCount = storeQueryRepository.countStoreProductsBySellerId(member.getId());
+        long nextBoundary = ((long) page + 1) * size;
+        boolean hasNext = totalCount > nextBoundary;
+
+        return StoreProductListResDto.of(products, page, size, hasNext);
     }
 }

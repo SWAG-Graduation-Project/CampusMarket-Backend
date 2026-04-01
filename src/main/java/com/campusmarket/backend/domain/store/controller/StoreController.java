@@ -4,6 +4,7 @@ import com.campusmarket.backend.domain.store.dto.response.MyStoreMainResDto;
 import com.campusmarket.backend.domain.store.dto.response.MyStoreProductListResDto;
 import com.campusmarket.backend.domain.store.dto.response.StoreDetailResDto;
 import com.campusmarket.backend.domain.store.dto.response.StoreListResDto;
+import com.campusmarket.backend.domain.store.dto.response.StoreProductListResDto;
 import com.campusmarket.backend.domain.store.service.StoreService;
 import com.campusmarket.backend.global.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,16 @@ public class StoreController implements StoreControllerDocs {
     @GetMapping("/stores/{sellerId}")
     public ApiResponse<StoreDetailResDto> getStoreDetail(@PathVariable Long sellerId) {
         return ApiResponse.success(storeService.getStoreDetail(sellerId));
+    }
+
+    @Override
+    @GetMapping("/stores/{sellerId}/products")
+    public ApiResponse<StoreProductListResDto> getStoreProducts(
+            @PathVariable Long sellerId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size
+    ) {
+        return ApiResponse.success(storeService.getStoreProducts(sellerId, page, size));
     }
 
     @Override

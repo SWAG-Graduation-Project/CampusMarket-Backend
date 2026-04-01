@@ -5,6 +5,7 @@ import com.campusmarket.backend.domain.product.entity.Product;
 import com.campusmarket.backend.domain.product.entity.ProductSaleStatus;
 import com.campusmarket.backend.domain.store.dto.response.MyStoreLatestProductResDto;
 import com.campusmarket.backend.domain.store.dto.response.MyStoreProductSummaryResDto;
+import com.campusmarket.backend.domain.store.dto.response.StoreProductSummaryResDto;
 import com.campusmarket.backend.domain.store.dto.response.StoreSummaryResDto;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -199,10 +200,62 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
         return query.getSingleResult();
     }
 
+    @Override
+    public List<StoreProductSummaryResDto> findStoreProductsBySellerId(
+            Long sellerId,
+            int offset,
+            int limit
+    ) {
+        List<Product> products = entityManager.createQuery(
+                        """
+                        select p
+                        from Product p
+                        where p.sellerId = :sellerId
+                          and p.deletedAt is null
+                        order by p.createdAt desc, p.id desc
+                        """,
+                        Product.class
+                )
+                .setParameter("sellerId", sellerId)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
+                .getResultList();
+
+        return products.stream()
+                .map(product -> StoreProductSummaryResDto.of(
+                        product.getId(),
+                        product.getSellerId(),
+                        product.getName(),
+                        product.getPrice(),
+                        product.getIsFree(),
+                        product.getSaleStatus().name(),
+                        product.getWishCount(),
+                        findThumbnailImageUrl(product.getId()),
+                        product.getDisplayAssetImageUrl(),
+                        product.getCreatedAt()
+                ))
+                .toList();
+    }
+
+    @Override
+    public long countStoreProductsBySellerId(Long sellerId) {
+        return entityManager.createQuery(
+                        """
+                        select count(p)
+                        from Product p
+                        where p.sellerId = :sellerId
+                          and p.deletedAt is null
+                        """,
+                        Long.class
+                )
+                .setParameter("sellerId", sellerId)
+                .getSingleResult();
+    }
+
     private String findThumbnailImageUrl(Long productId) {
         List<String> imageUrls = entityManager.createQuery(
                         """
-                        select pi.imageUrl
+                        select pi.originalImageUrl
                         from ProductImage pi
                         where pi.product.id = :productId
                         order by pi.displayOrder asc
