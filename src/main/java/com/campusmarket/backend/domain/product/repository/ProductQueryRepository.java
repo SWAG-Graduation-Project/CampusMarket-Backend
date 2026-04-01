@@ -4,7 +4,6 @@ import com.campusmarket.backend.domain.product.constant.ProductErrorCode;
 import com.campusmarket.backend.domain.product.dto.request.SearchProductsReqDto;
 import com.campusmarket.backend.domain.product.dto.response.ProductDetailInfo;
 import com.campusmarket.backend.domain.product.dto.response.ProductListItemInfo;
-import com.campusmarket.backend.domain.product.dto.response.ProductListItemInfo;
 import com.campusmarket.backend.domain.product.entity.ProductCondition;
 import com.campusmarket.backend.domain.product.entity.ProductSaleStatus;
 import com.campusmarket.backend.domain.product.exception.ProductException;
@@ -33,26 +32,28 @@ public class ProductQueryRepository {
         StringBuilder sql = new StringBuilder();
         sql.append("""
                 SELECT
-                    p.상품PK,
-                    p.상품명,
-                    p.브랜드,
-                    p.가격,
-                    p.무료나눔여부,
-                    p.상품상태,
-                    p.판매상태,
-                    p.조회수,
-                    p.찜수,
-                    (
-                        SELECT pi.이미지URL
-                        FROM 상품이미지 pi
-                        WHERE pi.상품ID = p.상품PK
-                        ORDER BY pi.표시순서 ASC
-                        LIMIT 1
-                    ) AS thumbnailImageUrl,
-                    p.대표에셋이미지URL,
-                    p.생성일
+                    p.상품PK              AS productId,
+                    p.상품명              AS name,
+                    p.브랜드              AS brand,
+                    p.가격                AS price,
+                    p.무료나눔여부         AS isFree,
+                    p.상품상태             AS productCondition,
+                    p.판매상태             AS saleStatus,
+                    p.조회수              AS viewCount,
+                    p.찜수                AS wishCount,
+                    p.대표에셋이미지URL     AS displayAssetImageUrl,
+                    pi.원본이미지URL        AS thumbnailImageUrl,
+                    p.생성일              AS createdAt,
+                    m.회원PK              AS sellerId,
+                    m.닉네임              AS sellerNickname
                 FROM 상품 p
-                WHERE p.판매상태 <> 'DELETED'
+                JOIN 회원 m
+                  ON p.판매자ID = m.회원PK
+                LEFT JOIN 상품이미지 pi
+                  ON pi.상품ID = p.상품PK
+                 AND pi.표시순서 = 1
+                WHERE p.삭제일 IS NULL
+                  AND p.판매상태 <> 'DELETED'
                 """);
 
         if (reqDto.keyword() != null && !reqDto.keyword().isBlank()) {
@@ -98,7 +99,9 @@ public class ProductQueryRepository {
                     toInteger(row[8]),
                     toStringValue(row[9]),
                     toStringValue(row[10]),
-                    toLocalDateTime(row[11])
+                    toLocalDateTime(row[11]),
+                    toLong(row[12]),
+                    toStringValue(row[13])
             ));
         }
 
@@ -110,7 +113,8 @@ public class ProductQueryRepository {
         sql.append("""
                 SELECT COUNT(*)
                 FROM 상품 p
-                WHERE p.판매상태 <> 'DELETED'
+                WHERE p.삭제일 IS NULL
+                  AND p.판매상태 <> 'DELETED'
                 """);
 
         if (reqDto.keyword() != null && !reqDto.keyword().isBlank()) {

@@ -30,9 +30,11 @@ public class ProductMapper {
                 info.saleStatus(),
                 info.viewCount(),
                 info.wishCount(),
-                info.thumbnailImageUrl(),
                 info.displayAssetImageUrl(),
-                info.createdAt()
+                info.thumbnailImageUrl(),
+                info.createdAt(),
+                info.sellerId(),
+                info.sellerNickname()
         );
     }
 

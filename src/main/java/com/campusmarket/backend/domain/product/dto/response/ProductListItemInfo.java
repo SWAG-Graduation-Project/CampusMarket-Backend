@@ -18,6 +18,8 @@ public record ProductListItemInfo(
         Integer wishCount,
         String displayAssetImageUrl,
         String thumbnailImageUrl,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long sellerId,
+        String sellerNickname
 ) {
 }
