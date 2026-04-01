@@ -17,7 +17,9 @@ public record ProductListItemResDto(
         Integer wishCount,
         String displayAssetImageUrl,
         String thumbnailImageUrl,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long sellerId,
+        String sellerNickname
 ) {
     public static ProductListItemResDto of(
             Long productId,
@@ -31,7 +33,9 @@ public record ProductListItemResDto(
             Integer wishCount,
             String displayAssetImageUrl,
             String thumbnailImageUrl,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            Long sellerId,
+            String sellerNickname
     ) {
         return new ProductListItemResDto(
                 productId,
@@ -45,7 +49,9 @@ public record ProductListItemResDto(
                 wishCount,
                 displayAssetImageUrl,
                 thumbnailImageUrl,
-                createdAt
+                createdAt,
+                sellerId,
+                sellerNickname
         );
     }
 }
