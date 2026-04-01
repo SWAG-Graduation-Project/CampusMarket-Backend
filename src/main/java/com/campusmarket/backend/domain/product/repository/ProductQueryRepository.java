@@ -32,28 +32,48 @@ public class ProductQueryRepository {
         StringBuilder sql = new StringBuilder();
         sql.append("""
                 SELECT
-                    p.상품PK              AS productId,
-                    p.상품명              AS name,
-                    p.브랜드              AS brand,
-                    p.가격                AS price,
-                    p.무료나눔여부         AS isFree,
-                    p.상품상태             AS productCondition,
-                    p.판매상태             AS saleStatus,
-                    p.조회수              AS viewCount,
-                    p.찜수                AS wishCount,
-                    p.대표에셋이미지URL     AS displayAssetImageUrl,
-                    pi.원본이미지URL        AS thumbnailImageUrl,
-                    p.생성일              AS createdAt,
-                    m.회원PK              AS sellerId,
-                    m.닉네임              AS sellerNickname
-                FROM 상품 p
-                JOIN 회원 m
-                  ON p.판매자ID = m.회원PK
-                LEFT JOIN 상품이미지 pi
-                  ON pi.상품ID = p.상품PK
-                 AND pi.표시순서 = 1
-                WHERE p.삭제일 IS NULL
-                  AND p.판매상태 <> 'DELETED'
+                    x.productId,
+                    x.name,
+                    x.brand,
+                    x.price,
+                    x.isFree,
+                    x.productCondition,
+                    x.saleStatus,
+                    x.viewCount,
+                    x.wishCount,
+                    x.displayAssetImageUrl,
+                    x.thumbnailImageUrl,
+                    x.createdAt,
+                    x.sellerId,
+                    x.sellerNickname
+                FROM (
+                    SELECT
+                        p.상품PK                AS productId,
+                        p.상품명                AS name,
+                        p.브랜드                AS brand,
+                        p.가격                  AS price,
+                        p.무료나눔여부           AS isFree,
+                        p.상품상태               AS productCondition,
+                        p.판매상태               AS saleStatus,
+                        p.조회수                AS viewCount,
+                        p.찜수                  AS wishCount,
+                        p.대표에셋이미지URL       AS displayAssetImageUrl,
+                        pi.원본이미지URL          AS thumbnailImageUrl,
+                        p.생성일                AS createdAt,
+                        m.회원PK                AS sellerId,
+                        m.닉네임                AS sellerNickname,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY p.판매자ID
+                            ORDER BY p.생성일 DESC, p.상품PK DESC
+                        ) AS rn
+                    FROM 상품 p
+                    JOIN 회원 m
+                      ON p.판매자ID = m.회원PK
+                    LEFT JOIN 상품이미지 pi
+                      ON pi.상품ID = p.상품PK
+                     AND pi.표시순서 = 1
+                    WHERE p.삭제일 IS NULL
+                      AND p.판매상태 <> 'DELETED'
                 """);
 
         if (reqDto.keyword() != null && !reqDto.keyword().isBlank()) {
@@ -73,7 +93,12 @@ public class ProductQueryRepository {
             sql.append(" AND p.소카테고리ID = :subCategoryId ");
         }
 
-        sql.append(buildOrderBy(sort));
+        sql.append("""
+                ) x
+                WHERE x.rn = 1
+                """);
+
+        sql.append(buildOuterOrderBy(sort));
         sql.append(" LIMIT :limit OFFSET :offset ");
 
         Query query = entityManager.createNativeQuery(sql.toString());
@@ -112,9 +137,16 @@ public class ProductQueryRepository {
         StringBuilder sql = new StringBuilder();
         sql.append("""
                 SELECT COUNT(*)
-                FROM 상품 p
-                WHERE p.삭제일 IS NULL
-                  AND p.판매상태 <> 'DELETED'
+                FROM (
+                    SELECT
+                        p.판매자ID,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY p.판매자ID
+                            ORDER BY p.생성일 DESC, p.상품PK DESC
+                        ) AS rn
+                    FROM 상품 p
+                    WHERE p.삭제일 IS NULL
+                      AND p.판매상태 <> 'DELETED'
                 """);
 
         if (reqDto.keyword() != null && !reqDto.keyword().isBlank()) {
@@ -133,6 +165,11 @@ public class ProductQueryRepository {
         if (reqDto.subCategoryId() != null) {
             sql.append(" AND p.소카테고리ID = :subCategoryId ");
         }
+
+        sql.append("""
+                ) x
+                WHERE x.rn = 1
+                """);
 
         Query query = entityManager.createNativeQuery(sql.toString());
         bindSearchParams(query, reqDto);
@@ -226,12 +263,12 @@ public class ProductQueryRepository {
         }
     }
 
-    private String buildOrderBy(String sort) {
+    private String buildOuterOrderBy(String sort) {
         return switch (sort) {
-            case "priceAsc" -> " ORDER BY p.가격 ASC, p.생성일 DESC ";
-            case "priceDesc" -> " ORDER BY p.가격 DESC, p.생성일 DESC ";
-            case "views" -> " ORDER BY p.조회수 DESC, p.생성일 DESC ";
-            default -> " ORDER BY p.생성일 DESC ";
+            case "priceAsc" -> " ORDER BY x.price ASC, x.createdAt DESC ";
+            case "priceDesc" -> " ORDER BY x.price DESC, x.createdAt DESC ";
+            case "views" -> " ORDER BY x.viewCount DESC, x.createdAt DESC ";
+            default -> " ORDER BY x.createdAt DESC ";
         };
     }
 
