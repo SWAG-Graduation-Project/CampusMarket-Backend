@@ -25,12 +25,14 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
         List<Object[]> rows = entityManager.createNativeQuery(
                         """
                         SELECT
+                            x.latestProductId,
                             x.sellerId,
                             x.sellerNickname,
                             x.latestProductDisplayAssetImageUrl,
                             x.latestProductCreatedAt
                         FROM (
                             SELECT
+                                p.상품PK AS latestProductId,
                                 p.판매자ID AS sellerId,
                                 m.닉네임 AS sellerNickname,
                                 p.대표에셋이미지URL AS latestProductDisplayAssetImageUrl,
@@ -56,11 +58,12 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
 
         return rows.stream()
                 .map(row -> StoreSummaryResDto.of(
-                        ((Number) row[0]).longValue(),
-                        row[1] != null ? row[1].toString() : null,
+                        ((Number) row[1]).longValue(),
                         row[2] != null ? row[2].toString() : null,
-                        row[3] != null
-                                ? ((java.sql.Timestamp) row[3]).toLocalDateTime()
+                        ((Number) row[0]).longValue(),
+                        row[3] != null ? row[3].toString() : null,
+                        row[4] != null
+                                ? ((java.sql.Timestamp) row[4]).toLocalDateTime()
                                 : null
                 ))
                 .toList();
