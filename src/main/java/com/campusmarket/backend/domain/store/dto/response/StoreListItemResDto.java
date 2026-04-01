@@ -2,19 +2,19 @@ package com.campusmarket.backend.domain.store.dto.response;
 
 import java.time.LocalDateTime;
 
-public record StoreSummaryResDto(
+public record StoreListItemResDto(
         Long sellerId,
         String sellerNickname,
         String latestProductDisplayAssetImageUrl,
         LocalDateTime latestProductCreatedAt
 ) {
-    public static StoreSummaryResDto of(
+    public static StoreListItemResDto of(
             Long sellerId,
             String sellerNickname,
             String latestProductDisplayAssetImageUrl,
             LocalDateTime latestProductCreatedAt
     ) {
-        return new StoreSummaryResDto(
+        return new StoreListItemResDto(
                 sellerId,
                 sellerNickname,
                 latestProductDisplayAssetImageUrl,

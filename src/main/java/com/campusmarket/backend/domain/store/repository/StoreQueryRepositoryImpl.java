@@ -10,11 +10,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Repository
 public class StoreQueryRepositoryImpl implements StoreQueryRepository {
@@ -24,56 +20,73 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
 
     @Override
     public List<StoreSummaryResDto> findStoreSummaries(int offset, int limit) {
-        List<MemberProfile> profiles = entityManager.createQuery(
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(
                         """
-                        select mp
-                        from MemberProfile mp
-                        order by mp.storeStartedAt asc, mp.memberId asc
-                        """,
-                        MemberProfile.class
+                        SELECT
+                            x.sellerId,
+                            x.sellerNickname,
+                            x.latestProductDisplayAssetImageUrl,
+                            x.latestProductCreatedAt
+                        FROM (
+                            SELECT
+                                p.판매자ID AS sellerId,
+                                m.닉네임 AS sellerNickname,
+                                p.대표에셋이미지URL AS latestProductDisplayAssetImageUrl,
+                                p.생성일 AS latestProductCreatedAt,
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY p.판매자ID
+                                    ORDER BY p.생성일 DESC, p.상품PK DESC
+                                ) AS rn
+                            FROM 상품 p
+                            JOIN 회원 m
+                              ON p.판매자ID = m.회원PK
+                            WHERE p.삭제일 IS NULL
+                              AND p.판매상태 <> 'DELETED'
+                        ) x
+                        WHERE x.rn = 1
+                        ORDER BY x.latestProductCreatedAt DESC, x.sellerId DESC
+                        LIMIT :limit OFFSET :offset
+                        """
                 )
-                .setFirstResult(offset)
-                .setMaxResults(limit)
+                .setParameter("limit", limit)
+                .setParameter("offset", offset)
                 .getResultList();
 
-        if (profiles.isEmpty()) {
-            return List.of();
-        }
-
-        List<Long> sellerIds = profiles.stream()
-                .map(profile -> profile.getMember().getId())
+        return rows.stream()
+                .map(row -> StoreSummaryResDto.of(
+                        ((Number) row[0]).longValue(),
+                        row[1] != null ? row[1].toString() : null,
+                        row[2] != null ? row[2].toString() : null,
+                        row[3] != null
+                                ? ((java.sql.Timestamp) row[3]).toLocalDateTime()
+                                : null
+                ))
                 .toList();
-
-        Map<Long, SellerProductInfo> representativeInfoMap =
-                findRepresentativeImageMapBySellerIds(sellerIds);
-
-        List<StoreSummaryResDto> result = new ArrayList<>();
-
-        for (MemberProfile profile : profiles) {
-            Long sellerId = profile.getMember().getId();
-            SellerProductInfo info = representativeInfoMap.get(sellerId);
-
-            result.add(StoreSummaryResDto.of(
-                    sellerId,
-                    profile.getNickname(),
-                    profile.getProfileImageUrl(),
-                    info != null ? info.productId() : null,
-                    info != null ? info.imageUrl() : null,
-                    profile.getSaleCount(),
-                    profile.getPurchaseCount()
-            ));
-        }
-
-        return result;
     }
 
     @Override
     public long countStores() {
-        return entityManager.createQuery(
-                        "select count(mp) from MemberProfile mp",
-                        Long.class
+        Object result = entityManager.createNativeQuery(
+                        """
+                        SELECT COUNT(*)
+                        FROM (
+                            SELECT
+                                p.판매자ID,
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY p.판매자ID
+                                    ORDER BY p.생성일 DESC, p.상품PK DESC
+                                ) AS rn
+                            FROM 상품 p
+                            WHERE p.삭제일 IS NULL
+                              AND p.판매상태 <> 'DELETED'
+                        ) x
+                        WHERE x.rn = 1
+                        """
                 )
                 .getSingleResult();
+
+        return ((Number) result).longValue();
     }
 
     @Override
@@ -184,36 +197,6 @@ public class StoreQueryRepositoryImpl implements StoreQueryRepository {
         }
 
         return query.getSingleResult();
-    }
-
-    private record SellerProductInfo(Long productId, String imageUrl) {}
-
-    private Map<Long, SellerProductInfo> findRepresentativeImageMapBySellerIds(List<Long> sellerIds) {
-        List<Object[]> rows = entityManager.createQuery(
-                        """
-                        select p.sellerId, p.id, pi.imageUrl, pi.displayOrder
-                        from ProductImage pi
-                        join pi.product p
-                        where p.sellerId in :sellerIds
-                          and p.deletedAt is null
-                        order by p.sellerId asc, p.id desc, pi.displayOrder asc
-                        """,
-                        Object[].class
-                )
-                .setParameter("sellerIds", sellerIds)
-                .getResultList();
-
-        Map<Long, SellerProductInfo> infoMap = new HashMap<>();
-
-        for (Object[] row : rows) {
-            Long sellerId = (Long) row[0];
-            Long productId = (Long) row[1];
-            String imageUrl = (String) row[2];
-
-            infoMap.putIfAbsent(sellerId, new SellerProductInfo(productId, imageUrl));
-        }
-
-        return infoMap;
     }
 
     private String findThumbnailImageUrl(Long productId) {
