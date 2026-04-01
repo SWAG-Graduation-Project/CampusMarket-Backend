@@ -233,8 +233,8 @@ public class ProductService {
             ProductImage productImage = ProductImage.builder()
                     .product(product)
                     .imageUrl(imageItem.imageUrl())
-                    .originalImageUrl(imageItem.imageUrl())
-                    .backgroundRemoved(false)
+                    .originalImageUrl(imageItem.originalImageUrl())
+                    .backgroundRemoved(!imageItem.imageUrl().equals(imageItem.originalImageUrl()))
                     .displayOrder(i + 1)
                     .createdAt(LocalDateTime.now())
                     .build();

@@ -5,6 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 public record ProductImageItemReqDto(
 
         @NotBlank(message = "이미지 URL은 필수입니다.")
-        String imageUrl
+        String imageUrl,
+
+        @NotBlank(message = "원본 이미지 URL은 필수입니다.")
+        String originalImageUrl
 ) {
 }
