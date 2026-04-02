@@ -56,14 +56,32 @@ public class ChatSystemMessageService {
         String topic = topicOf(chatRoom.getId());
 
         ChatMessage sellerMsg = save(chatRoom, chatRoom.getSellerId(), MessageType.LOCKER_SHARE,
-                seller != null ? seller.getLockerName() : null, null);
+                seller != null ? seller.getLockerName() : null, buildLockerMetadata(seller));
         broadcast(topic, ChatMessageResDto.of(sellerMsg, seller != null ? seller.getNickname() : null));
 
         ChatMessage buyerMsg = save(chatRoom, chatRoom.getBuyerId(), MessageType.LOCKER_SHARE,
-                buyer != null ? buyer.getLockerName() : null, null);
+                buyer != null ? buyer.getLockerName() : null, buildLockerMetadata(buyer));
         broadcast(topic, ChatMessageResDto.of(buyerMsg, buyer != null ? buyer.getNickname() : null));
 
         chatRoom.updateLastMessage(buyerMsg.getId(), buyerMsg.getCreatedAt());
+    }
+
+    private String buildLockerMetadata(Member member) {
+        if (member == null) return null;
+        try {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("lockerName", member.getLockerName());
+            map.put("lockerBuilding", member.getLockerBuilding());
+            map.put("lockerFloor", member.getLockerFloor());
+            map.put("lockerMajor", member.getLockerMajor());
+            map.put("lockerGroup", member.getLockerGroup());
+            map.put("lockerRow", member.getLockerRow());
+            map.put("lockerCol", member.getLockerCol());
+            return objectMapper.writeValueAsString(map);
+        } catch (Exception e) {
+            log.warn("사물함 메타데이터 직렬화 실패 - memberId={}", member.getId(), e);
+            return null;
+        }
     }
 
     // FACE_TO_FACE 거래 수락 시 시간표 공유 + 빈 시간 계산 시스템 메시지
