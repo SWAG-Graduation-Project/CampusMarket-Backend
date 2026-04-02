@@ -61,6 +61,10 @@ public class ChatMessage {
         return deletedAt != null;
     }
 
+    public void updateMetadata(String metadata) {
+        this.metadata = metadata;
+    }
+
     public void delete() {
         this.deletedAt = LocalDateTime.now();
     }
