@@ -70,26 +70,25 @@ public class ChatSystemMessageService {
     public void sendTimetableShareMessages(ChatRoom chatRoom, Member seller, Member buyer) {
         String topic = topicOf(chatRoom.getId());
 
+        String sellerTimetable = seller != null ? seller.getTimetableData() : null;
         ChatMessage sellerMsg = save(chatRoom, chatRoom.getSellerId(), MessageType.TIMETABLE_SHARE,
-                seller != null ? seller.getTimetableImageUrl() : null, null);
+                null, sellerTimetable);
         broadcast(topic, ChatMessageResDto.of(sellerMsg, seller != null ? seller.getNickname() : null));
 
+        String buyerTimetable = buyer != null ? buyer.getTimetableData() : null;
         ChatMessage buyerMsg = save(chatRoom, chatRoom.getBuyerId(), MessageType.TIMETABLE_SHARE,
-                buyer != null ? buyer.getTimetableImageUrl() : null, null);
+                null, buyerTimetable);
         broadcast(topic, ChatMessageResDto.of(buyerMsg, buyer != null ? buyer.getNickname() : null));
 
         chatRoom.updateLastMessage(buyerMsg.getId(), buyerMsg.getCreatedAt());
 
-        String sellerData = seller != null ? seller.getTimetableData() : null;
-        String buyerData = buyer != null ? buyer.getTimetableData() : null;
-
         // 한 명이라도 시간표 미등록이면 매칭 불가 메시지
-        if (sellerData == null || buyerData == null) {
+        if (sellerTimetable == null || buyerTimetable == null) {
             sendNoMatchMessage(chatRoom);
             return;
         }
 
-        sendFreeSlotMessage(chatRoom, sellerData, buyerData);
+        sendFreeSlotMessage(chatRoom, sellerTimetable, buyerTimetable);
     }
 
     private void sendFreeSlotMessage(ChatRoom chatRoom, String sellerData, String buyerData) {
